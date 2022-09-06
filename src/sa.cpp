@@ -199,9 +199,17 @@ void SA::m_bstar_start()
 
 vector<vector<float>> SA::get_dies_inf(){
     vector<vector<float>> result;
-    for(int i=0; i<m_size; ++i){
-        result.push_back(m_BstarTree->get_dies_coor(i));
+    if(m_structure == "B*-tree"){
+        for(int i=0; i<m_size; ++i){
+            result.push_back(m_BstarTree->get_dies_coor(i));
+        }
     }
+    else if(m_structure == "TCG"){
+        for(int i=0; i<m_size; ++i){
+            result.push_back(m_TCG->get_dies_coor(i));
+        }
+    }
+
     return result;
 }
 

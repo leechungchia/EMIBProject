@@ -10,6 +10,8 @@ int main(int argc,char* argv[])
 {
     time_t start = time(0);
     GlobalPlacer placer(argv[1], "random", 15);
+    placer.do_partial_placement();
+    /*
     placer.OverallPlacer->set_bstar_parameter(0.3,0.4,0.3);
     cout << "Set bstar parameter successfully" << endl;
     placer.OverallPlacer->set_random_seed(22);
@@ -20,9 +22,12 @@ int main(int argc,char* argv[])
     cout << "Set cost parameter successfully" << endl;
     cout << "Overall Placement Starts" << endl;
     placer.do_overall_placement();
+    */
     placer.write_output(argv[2], argv[3], argv[4]);
+    /*
     cout << "Overall Placement Ends" << endl;
     cout << "time: "<< difftime(time(0), start) << endl;
+    */
     return 0;
 }
 

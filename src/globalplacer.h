@@ -21,6 +21,7 @@
 #include "base.h"
 #include "bstar.h"
 #include "sa.h"
+#include "TCG.h"
 
 
 using namespace std;
@@ -34,11 +35,17 @@ public:
         cout << "Die Num: " << m_DieVec.size() << endl;
         cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
         OverallPlacer = new SA();
+        SA* new_partialplacer = new SA();
+        PartialPlacers.push_back(new_partialplacer);
         cout << "Initialization Finished" << endl;
     }
     SA* OverallPlacer;
+    vector<SA*> PartialPlacers;
     void write_output(char* arg1, char* arg2, char* arg3);
     void set_random_seed(int t_seed){m_seed = t_seed;}
+    void do_partial_placement(){
+        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "TCG");
+    }
     void do_overall_placement(){
         OverallPlacer->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "B*-tree");
         OverallPlacer->start();

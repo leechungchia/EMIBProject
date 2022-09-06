@@ -51,8 +51,8 @@ class TCGNode{
         TCGNode*       DualNode(){return m_DualNode;};
         void           SetDualNode(TCGNode* t_node){m_DualNode = t_node;}; 
     private:        
-        set<TCGNode*> m_UpperNodes;
-        set<TCGNode*> m_BottomNodes;
+        set<TCGNode*>    m_UpperNodes;
+        set<TCGNode*>    m_BottomNodes;
         TCGNode*         m_BaseNode;
         TCGNode*         m_DualNode;
         float            m_weight;
@@ -102,12 +102,13 @@ class TCGGraph{
 
 class TCG{
     public:
-        TCG(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<float, float>, pair<float, float>>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap){
+        TCG(){
             m_HCG = new TCGGraph("HCG");
             m_VCG = new TCGGraph("VCG");
         }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<float, float>, pair<float, float>>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void Initialize();
+        vector<float> get_dies_coor(int t_die_index);
     private:
         TCGGraph* m_HCG;
         TCGGraph* m_VCG;

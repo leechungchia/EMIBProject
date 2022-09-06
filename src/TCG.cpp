@@ -36,6 +36,7 @@ void TCGGraph::m_CoorGenerate(){
     queue<TCGNode*> NodeQueue;
     TCGNode* current_node;
     NodeQueue.push(m_source);
+    current_node = m_source;
     while(current_node->CodeName() != "target"){
         current_node = NodeQueue.front();
         NodeQueue.pop();
@@ -46,30 +47,29 @@ void TCGGraph::m_CoorGenerate(){
 }
 
 void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
+    m_source->BottomNodes()->clear();
+    m_source->UpperNodes()->clear();
+    m_target->BottomNodes()->clear();
+    m_target->UpperNodes()->clear();
     for(int i=0; i<t_TCGNodes->size(); ++i){
         t_TCGNodes->at(i)->HardInitialize();
-        m_source->BottomNodes()->clear();
-        m_source->UpperNodes()->clear();
+        t_TCGNodes->at(i)->UpperInsert(m_target);
+        t_TCGNodes->at(i)->BottomInsert(m_source);
+        m_source->UpperInsert(t_TCGNodes->at(i));
+        m_target->BottomInsert(t_TCGNodes->at(i));
     }
     if(t_is_activated){
-        t_TCGNodes->at(0)->BottomInsert(m_source);
-        t_TCGNodes->at(0)->ResetCounter();
-        for(int i=1; i<t_TCGNodes->size()-1; ++i){
+        for(int i=1; i<t_TCGNodes->size(); ++i){
             t_TCGNodes->at(i)->BottomInsert(t_TCGNodes->at(i-1));
-            t_TCGNodes->at(i)->UpperInsert(t_TCGNodes->at(i+1));
-            t_TCGNodes->at(i)->ResetCounter();
+            t_TCGNodes->at(i-1)->UpperInsert(t_TCGNodes->at(i));
         }
-        m_target->BottomNodes()->clear();
-        m_target->UpperNodes()->clear();
         m_target->BottomInsert(t_TCGNodes->at(t_TCGNodes->size()-1));
-        t_TCGNodes->at(t_TCGNodes->size()-1)->UpperInsert(m_target);
-        t_TCGNodes->at(t_TCGNodes->size()-1)->ResetCounter();
     }
-    else{
-        for(int i=0; i<t_TCGNodes.size(); ++i){
-            m_source->UpperInsert(t_TCGNodes);
-        }
+    for(int i=0; i<t_TCGNodes->size(); ++i){
+        t_TCGNodes->at(i)->ResetCounter();
     }
+    m_source->ResetCounter();
+    m_target->ResetCounter();
     m_CoorGenerate();   
 }
 
@@ -120,6 +120,15 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<f
 }
 
 void TCG::Initialize(){
-    m_HCG->Initialize(m_HCGNodes, 1);
-    m_VCG->Initialize(m_VCGNodes, 0);
+    m_HCG->Initialize(&m_HCGNodes, 1);
+    m_VCG->Initialize(&m_VCGNodes, 0);
+}
+
+vector<float> TCG::get_dies_coor(int t_die_index){
+    vector<float> die_inf;
+    TCGNode* target_node = m_die_map[t_die_index];
+    die_inf.push_back(target_node->value());
+    die_inf.push_back(target_node->DualNode()->value()); 
+    die_inf.push_back(target_node->r());
+    return die_inf;
 }

@@ -18,6 +18,7 @@
 #include <cfloat>
 #include <iterator>
 #include "bstar.h"
+#include "TCG.h"
 
 
 class SA
@@ -71,6 +72,14 @@ public:
             m_best_cost = get_current_cost();
             cout << "Construct B*-tree successfully" << endl;
         }
+        else if(m_structure == "TCG"){
+            cout << "TCG mode" << endl;
+            m_TCG = new TCG();
+            m_TCG->TCGConstruct(t_DieVec, t_CommonNetVec, t_MappingCommonPinToDie);
+            cout << "TCGNode Constructed successfully" << endl;
+            m_TCG->Initialize();
+            cout << "TCG Initialization successfully" << endl;
+        }
     }
     void  set_random_seed(int t_seed);
     void  set_profile_parameter(float t_bound_arg, float t_area_arg, float t_hpwl_arg);
@@ -87,6 +96,7 @@ public:
 private:
     //// data structure ////
     BstarTree*    m_BstarTree;
+    TCG*          m_TCG;
     string        m_structure;
     //// input parameter ////
     int           m_size;
