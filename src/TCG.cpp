@@ -28,8 +28,11 @@ void TCGNode::ValueGenerate(){
     }
 }
 
-void EdgeConnect(vector<TCGNode*>& t_InsertedNodes){
-    for(int i=0; i)
+void TCGNode::EdgeConnect(vector<TCGNode*>& t_InsertedNodes){
+    set<TCGNode*>* target;
+    for(int i=0; i<t_InsertedNodes.size(); ++i){
+        target = t_InsertedNodes[i]->BottomNodes();
+    }
 }
 
 void TCGGraph::m_CoorGenerate(){
