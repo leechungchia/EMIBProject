@@ -43,7 +43,9 @@ class TCGNode{
         void   BottomInsert(TCGNode* t_node){m_BottomNodes.insert(t_node);};
         string CodeName(){return m_code_name;};
         int    r(){return m_rotated;};
-        void   set_r(int t_rotated){m_rotated = t_rotated;};
+        void   set_r(){(m_rotated +1 == 4)?0:m_rotated+1;};
+        void   HardInitialize();
+        void   SoftInitialize();
         set<TCGNode*>* UpperNodes(){return &m_UpperNodes;};
         set<TCGNode*>* BottomNodes(){return &m_BottomNodes;};
         TCGNode*       DualNode(){return m_DualNode;};
@@ -89,7 +91,7 @@ class TCGGraph{
             m_source = new TCGNode("source", 0);
             m_target = new TCGNode("target", 0);
         }
-        void initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
+        void Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
     private:
         void     m_CoorGenerate();
         TCGNode* m_source;
@@ -105,6 +107,7 @@ class TCG{
             m_VCG = new TCGGraph("VCG");
         }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<float, float>, pair<float, float>>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
+        void Initialize();
     private:
         TCGGraph* m_HCG;
         TCGGraph* m_VCG;

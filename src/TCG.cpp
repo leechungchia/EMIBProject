@@ -45,19 +45,48 @@ void TCGGraph::m_CoorGenerate(){
     m_target->ValueGenerate();
 }
 
-void TCGGraph::initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
-    m_source->UpperInsert(t_TCGNodes->at(0));
-    t_TCGNodes->at(0)->BottomInsert(m_source);
-    t_TCGNodes->at(0)->ResetCounter();
-    for(int i=1; i<t_TCGNodes->size()-1; ++i){
-        t_TCGNodes->at(i)->BottomInsert(t_TCGNodes->at(i-1));
-        t_TCGNodes->at(i)->UpperInsert(t_TCGNodes->at(i+1));
-        t_TCGNodes->at(i)->ResetCounter();
+void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
+    for(int i=0; i<t_TCGNodes.size(); ++i){
+        t_TCGNodes->at(i)->HardInitialize();
+        m_source->BottomNodes()->clear();
+        m_source->UpperNodes()->clear();
     }
-    m_target->BottomInsert(t_TCGNodes->at(t_TCGNodes->size()-1));
-    t_TCGNodes->at(t_TCGNodes->size()-1)->UpperInsert(m_target);
-    t_TCGNodes->at(t_TCGNodes->size()-1)->ResetCounter();
-    m_CoorGenerate();       
+    if(t_is_activated){
+        t_TCGNodes->at(0)->BottomInsert(m_source);
+        t_TCGNodes->at(0)->ResetCounter();
+        for(int i=1; i<t_TCGNodes->size()-1; ++i){
+            t_TCGNodes->at(i)->BottomInsert(t_TCGNodes->at(i-1));
+            t_TCGNodes->at(i)->UpperInsert(t_TCGNodes->at(i+1));
+            t_TCGNodes->at(i)->ResetCounter();
+        }
+        m_target->BottomNodes()->clear();
+        m_target->UpperNodes()->clear();
+        m_target->BottomInsert(t_TCGNodes->at(t_TCGNodes->size()-1));
+        t_TCGNodes->at(t_TCGNodes->size()-1)->UpperInsert(m_target);
+        t_TCGNodes->at(t_TCGNodes->size()-1)->ResetCounter();
+    }
+    else{
+        for(int i=0; i<t_TCGNodes.size(); ++i){
+            m_source->UpperInsert(t_TCGNodes);
+        }
+    }
+    m_CoorGenerate();   
+}
+
+void TCGNode::HardInitialize(){
+    m_UpperNodes.clear();
+    m_BottomNodes.clear();
+    m_weight = m_initial_weight;
+    m_value = 0;
+    m_BaseNode = 0;
+    m_depth = -1;
+    m_rotated = 0;
+    SoftInitialize();
+}
+
+void TCGNode::SoftInitialize(){
+    m_visited_counter = m_BottomNodes.size();
+    m_is_visited = 0;
 }
 
 void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<float, float>, pair<float, float>>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap){
@@ -88,4 +117,10 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<f
         new_pin_2->set_TCGNode(m_HCGNodes.at(t_PinNodeMap[i].second), m_VCGNodes.at(t_PinNodeMap[i].second));
         m_common_nets.push_back(make_pair(new_pin_1, new_pin_2));
     }
+}
+
+void TCG::Initialize(){
+    m_HCG->Initialize(m_HCGNodes, 1);
+    m_VCG->Initialize(m_VCGNodes, 0);
+
 }
