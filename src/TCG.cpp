@@ -2,10 +2,10 @@
 
 void TCGNode::SetVisited(queue<TCGNode*>& t_TCGNodeQueue){
     m_is_visited = 1;
-    for(int i=0; i<m_UpperNodes.size(); ++i){
-        m_UpperNodes[i]->DecreaseCounter();
-        if(m_UpperNodes[i]->finished()){
-            t_TCGNodeQueue.push(m_UpperNodes[i]);
+    for(auto it=m_UpperNodes.begin(); it != m_UpperNodes.end(); ++it){
+        (*it)->DecreaseCounter();
+        if((*it)->finished()){
+            t_TCGNodeQueue.push((*it));
         }
     }
 }
@@ -14,11 +14,11 @@ void TCGNode::ValueGenerate(){
     if(m_code_name != "source"){
         float current_max = FLT_MIN;
         float height      = 0;
-        for(int i=0; i<m_BottomNodes.size(); ++i){
-            height = m_BottomNodes[i]->value() + m_BottomNodes[i]->weight();
+        for(auto it=m_BottomNodes.begin(); it != m_BottomNodes.end(); ++it){
+            height = (*it)->value() + (*it)->weight();
             if(height > current_max){
                 current_max = height;
-                m_BaseNode = m_BottomNodes[i];
+                m_BaseNode = (*it);
             }
         }
         m_value = current_max;
@@ -28,8 +28,9 @@ void TCGNode::ValueGenerate(){
     }
 }
 
-
-
+void EdgeConnect(vector<TCGNode*>& t_InsertedNodes){
+    for(int i=0; i)
+}
 
 void TCGGraph::m_CoorGenerate(){
     queue<TCGNode*> NodeQueue;
@@ -44,6 +45,21 @@ void TCGGraph::m_CoorGenerate(){
     m_target->ValueGenerate();
 }
 
-void TCGGraph::initialize(vector<TCGNode*>* t_TCGNodes){
+void TCGGraph::initialize(vector<TCGNode*>* t_TCGNodes, int t_max_height, vector<float>& t_distribution){
+    vector<int> TCG_num;
+    TCG_num.push_back(0);
+    int counter = 0;
+    int num;
+    for(int i=0; i<t_distribution.size()-1; ++i){
+        num = ((int)((float)t_TCGNodes.size()*t_distribution[i]) == 0)?1:(int)((float)t_TCGNodes.size()*t_distribution[i]);
+        counter += num;
+        TCG_num.push_back(counter);
+    }
+    TCG_num.push_back(TCG_num.size() - counter); 
+    for(int i=0; i<t_max_height; ++i){
+        for(int j=TCG_num[i]; j<TCG_num[i+1]; ++j){
+            continue;
+        }
+    }    
 }
 

@@ -35,11 +35,12 @@ class TCGNode{
         void   SetVisited(queue<TCGNode*>& t_TCGNodeQueue);
         bool   finished(){return m_visited_counter == 0;};
         void   DecreaseCounter(){m_visited_counter -= 1;};
-        void   ResetCounter(){m_visited_counter = m_BottomNodes.size();}
-        string CodeName(){return m_code_name;}
+        void   ResetCounter(){m_visited_counter = m_BottomNodes.size();};
+        void   EdgeConnect(vector<TCGNode*>& t_InsertedNodes);
+        string CodeName(){return m_code_name;};
     private:        
-        vector<TCGNode*> m_UpperNodes;
-        vector<TCGNode*> m_BottomNodes;
+        set<TCGNode*> m_UpperNodes;
+        set<TCGNode*> m_BottomNodes;
         TCGNode*         m_BaseNode;
         TCGNode*         m_DualNode;
         float            m_weight;
@@ -47,25 +48,23 @@ class TCGNode{
         string           m_code_name;
         int              m_depth;
         int              m_visited_counter;
-        bool             m_is_visited;
+        bool             m_is_visited;    
 };
 
 
 class TCGGraph{
     public:
-        TCGGraph(string t_type){
-
+        TCGGraph(string t_direction_type):m_direction_type(t_direction_type){
             m_source = new TCGNode("source", 0);
             m_target = new TCGNode("target", 0);
         }
-        void initialize(vector<TCGNode*>* t_TCGNodes);
+        void initialize(vector<TCGNode*>* t_TCGNodes, int t_max_height, vector<float>& t_distribution);
     private:
         void     m_CoorGenerate();
-        void     m_SetNodeDepth();
-        void     m_EdgeRandomAssign();
+        void     m_EdgeConnect(TCGNode* t_UpperNode, vector<TCGNode*>& t_BottomNodes);
         TCGNode* m_source;
         TCGNode* m_target;
-        string   m_type;
+        string   m_direction_type;
 };
 
 class TCG{
