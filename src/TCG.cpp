@@ -46,7 +46,7 @@ void TCGGraph::m_CoorGenerate(){
 }
 
 void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
-    for(int i=0; i<t_TCGNodes.size(); ++i){
+    for(int i=0; i<t_TCGNodes->size(); ++i){
         t_TCGNodes->at(i)->HardInitialize();
         m_source->BottomNodes()->clear();
         m_source->UpperNodes()->clear();
@@ -122,5 +122,4 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<f
 void TCG::Initialize(){
     m_HCG->Initialize(m_HCGNodes, 1);
     m_VCG->Initialize(m_VCGNodes, 0);
-
 }
