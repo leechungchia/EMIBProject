@@ -70,7 +70,10 @@ void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
     }
     m_source->ResetCounter();
     m_target->ResetCounter();
-    m_CoorGenerate();   
+    m_CoorGenerate();
+    for(int i=0; i<t_TCGNodes->size(); ++i){
+        cout << t_TCGNodes->at(i)->value() << endl;
+    }   
 }
 
 void TCGNode::HardInitialize(){
