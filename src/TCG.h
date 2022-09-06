@@ -65,6 +65,7 @@ class TCGGraph{
         TCGNode* m_source;
         TCGNode* m_target;
         string   m_direction_type;
+        
 };
 
 class TCG{

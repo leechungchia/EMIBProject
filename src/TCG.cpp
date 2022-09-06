@@ -62,4 +62,3 @@ void TCGGraph::initialize(vector<TCGNode*>* t_TCGNodes, int t_max_height, vector
         }
     }    
 }
-
