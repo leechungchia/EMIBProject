@@ -29,9 +29,9 @@ void TCGNode::ValueGenerate(){
 }
 
 void TCGNode::EdgeConnect(vector<TCGNode*>& t_InsertedNodes){
-    set<TCGNode*>* target;
     for(int i=0; i<t_InsertedNodes.size(); ++i){
-        target = t_InsertedNodes[i]->BottomNodes();
+        t_InsertedNodes[i]->UpperInsert(this);
+        t_InsertedNodes[i]->EdgeConnect();
     }
 }
 
@@ -54,7 +54,7 @@ void TCGGraph::initialize(vector<TCGNode*>* t_TCGNodes, int t_max_height, vector
     int counter = 0;
     int num;
     for(int i=0; i<t_distribution.size()-1; ++i){
-        num = ((int)((float)t_TCGNodes.size()*t_distribution[i]) == 0)?1:(int)((float)t_TCGNodes.size()*t_distribution[i]);
+        num = ((int)((float)t_TCGNodes->size()*t_distribution[i]) == 0)?1:(int)((float)t_TCGNodes->size()*t_distribution[i]);
         counter += num;
         TCG_num.push_back(counter);
     }

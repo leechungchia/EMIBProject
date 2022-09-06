@@ -38,9 +38,8 @@ class TCGNode{
         void   ResetCounter(){m_visited_counter = m_BottomNodes.size();};
         void   EdgeConnect(vector<TCGNode*>& t_InsertedNodes);
         string CodeName(){return m_code_name;};
-        void   hi();
-        set<TCGNode*>* UpperNodes(){return m_UpperNodes;};
-        set<TCGNode*>* BottomNodes(){return m_BottomNodes;}; 
+        set<TCGNode*>* UpperNodes(){return &m_UpperNodes;};
+        set<TCGNode*>* BottomNodes(){return &m_BottomNodes;}; 
     private:        
         set<TCGNode*> m_UpperNodes;
         set<TCGNode*> m_BottomNodes;
