@@ -28,8 +28,93 @@ void TCGNode::ValueGenerate(){
     }
 }
 
-void TCGNode::EdgeConnect(set<TCGNode*>* t_InsertedNodes){
-    return;
+float TCGNode::Overlap(TCGNode* t_node){
+    float value_1 = m_value;
+    float max_1   = m_value+m_weight;
+    float value_2 = t_node->value();
+    float max_2   = t_node->weight();
+    if(max_2 >= max_1){
+        if(value_1 >= value_2){
+            return m_weight;
+        }
+        else if(value_2 <= max_1){
+            return max_1 - value_2;
+        }
+        else{
+            return -(value_2 - max_1);
+        }
+    }
+    else{
+        if(value_2 >= value_1){
+            return t_node->weight();
+        }
+        else if(value_1 <= max_2){
+            return max_2 - value_1;
+        }
+        else{
+            return -(value_1 - max_2);
+        }
+    }
+}
+
+float TCGNode::Distance(TCGNode* t_node){
+    float value_1 = m_value;
+    float max_1   = m_value+m_weight;
+    float value_2 = t_node->value();
+    float max_2   = t_node->weight();
+    if(max_2 >= max_1){
+        if(value_2 >= max_1){
+            return value_2 - max_1;
+        }
+        else{
+            return 0;
+        }
+    }
+    else{
+        if(value_1 >= max_2){
+            return value_1 - max_2;
+        }
+        else{
+            return 0;
+        }
+    }
+}
+
+bool EMIBNet::isOverlapValid(bool t_state){
+    if(!t_state){
+        return (m_node_1->Overlap(m_node_2) >= m_overlap);
+    }
+    else{
+        return (m_node_1->DualNode()->Overlap(m_node_2->DualNode()) >= m_overlap);
+    }
+}
+
+bool EMIBNet::isDistanceValid(bool t_state){
+    if(!t_state){
+        return (m_node_1->Distance(m_node_2) <= m_distance);
+    }
+    else{
+        return (m_node_1->DualNode()->Distance(m_node_2->DualNode()) <= m_distance);
+    }
+}
+
+void EMIBNet::Legalize(bool t_state){
+    TCGNode* node_1;
+    TCGNode* node_2;
+    if(!t_state){
+        node_1 = m_node_1;
+        node_2 = m_node_2;
+    }
+    else{
+        node_1 = m_node_1->DualNode();
+        node_2 = m_node_2->DualNode();
+    }
+    if(node_1->value() > node_2->value()){
+        node_2->Setvalue(node_2->value() + m_overlap - node_1->Overlap(node_2));
+    }
+    else{
+        node_1->Setvalue(node_1->value() + m_overlap - node_1->Overlap(node_2));
+    }
 }
 
 void TCGGraph::m_CoorGenerate(){

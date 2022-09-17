@@ -29,6 +29,7 @@ class TCGNode{
         m_code_name(t_code_name), m_initial_weight(t_weight), m_weight(t_weight), m_value(0), m_is_visited(1), m_depth(-1), m_visited_counter(0), m_rotated(0){}
         void   ValueGenerate();
         float  value(){return m_value;}
+        void   Setvalue(float t_value){m_value = t_value;};
         float  weight(){return m_weight;}
         float  initial_weight(){return m_initial_weight;};
         void   SetDepth(int t_depth){m_depth = t_depth;}
@@ -47,13 +48,19 @@ class TCGNode{
         void   HardInitialize();
         void   SoftInitialize();
         set<TCGNode*>* UpperNodes(){return &m_UpperNodes;};
+        set<TCGNode*>* DirectUpperNodes(){return &m_DirectUpperNodes;};
+        set<TCGNode*>* DirectUpperNodes(){return &m_DirectBottomNodes;};
         set<TCGNode*>* BottomNodes(){return &m_BottomNodes;};
         TCGNode*       DualNode(){return m_DualNode;};
         void           SetDualNode(TCGNode* t_node){m_DualNode = t_node;};
-
+        float          Overlap(TCGNode* t_node);
+        float          Distance(TCGNode* t_node);
+        int            ID(){return m_ID;};
     private:        
         set<TCGNode*>    m_UpperNodes;
+        set<TCGNode*>    m_DirectUpperNodes;
         set<TCGNode*>    m_BottomNodes;
+        set<TCGNode*>    m_DirectBottomNodes;
         TCGNode*         m_BaseNode;
         TCGNode*         m_DualNode;
         float            m_weight;
@@ -64,8 +71,31 @@ class TCGNode{
         int              m_visited_counter;
         bool             m_is_visited;
         int              m_rotated;
-        vector<TCGNode*> m_EMIBConnectedNodes;
-        vector<TCGNode*> m_EMIBCurrrentNodes;    
+        int              m_ID;
+};
+
+class EMIBNet {
+    public:
+        EMIBNet(TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance):m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap){}
+        bool isOverlapValid(bool t_state);
+        bool isDistanceValid(bool t_state);
+        void Legalize(bool t_state);
+    private:
+        float    m_overlap;
+        float    m_distance;
+        TCGNode* m_node_1;
+        TCGNode* m_node_2;
+};
+
+class EMIBP {
+    public:
+        EMIBP(){}
+        vector<EMIBP*> Legalization();
+    private:
+        vector<TCGNode*> m_nodes;
+        vector<vector<EMIBNet*>> m_nets;
+        vector<EMIBP*> m_upperEMIBP;
+        vector<EMIBP*> m_bottomEMIBP;
 };
 
 class CommonTCGPin: public pin{
@@ -97,8 +127,11 @@ class TCGGraph{
         void Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
     private:
         void     m_CoorGenerate();
+        vector<EMIBNet*>     m_TraverseToBound(vector<TCGNode*>& t_bound);
+        EMIBP*   m_EMIBPSource;
         TCGNode* m_source;
         TCGNode* m_target;
+        vector<vector<EMIBNet*>>* m_Nets;
         string   m_direction_type;
         
 };
@@ -112,6 +145,7 @@ class TCG{
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<float, float>, pair<float, float>>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void Initialize();
         vector<float> get_dies_coor(int t_die_index);
+
     private:
         TCGGraph* m_HCG;
         TCGGraph* m_VCG;
@@ -120,5 +154,6 @@ class TCG{
         vector<TCGNode*>                 m_VCGNodes;
         vector<pair<CommonTCGPin*, CommonTCGPin*>> m_common_nets;
         unordered_map<int, TCGNode*> m_die_map;
+        vector<vector<EMIBNet*>>     m_EMIBNets;
 };
 #endif
