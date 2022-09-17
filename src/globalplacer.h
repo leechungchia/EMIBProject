@@ -45,6 +45,12 @@ public:
     void set_random_seed(int t_seed){m_seed = t_seed;}
     void do_partial_placement(){
         PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "TCG");
+        vector<vector<float>> die_inf = PartialPlacers[0]->get_dies_inf();
+        for(int i=0; i<m_DieVec.size(); ++i){
+            m_DieVec[i]->set_x(die_inf[i][0]);
+            m_DieVec[i]->set_y(die_inf[i][1]);
+            m_DieVec[i]->set_r(die_inf[i][2]);
+        }
     }
     void do_overall_placement(){
         OverallPlacer->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "B*-tree");
@@ -66,6 +72,7 @@ private:
     vector<pair<int, int>> m_MappingCommonPinToDie();
     vector<die*> m_DieVec;
     vector<pair<CommonPin*, CommonPin*>> m_CommonNetVec;
+    map<pair<die*, die*>, pair<float, float>> m_EMIBNet;
     int          m_seed;
 };
 

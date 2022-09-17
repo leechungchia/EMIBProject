@@ -49,7 +49,8 @@ class TCGNode{
         set<TCGNode*>* UpperNodes(){return &m_UpperNodes;};
         set<TCGNode*>* BottomNodes(){return &m_BottomNodes;};
         TCGNode*       DualNode(){return m_DualNode;};
-        void           SetDualNode(TCGNode* t_node){m_DualNode = t_node;}; 
+        void           SetDualNode(TCGNode* t_node){m_DualNode = t_node;};
+
     private:        
         set<TCGNode*>    m_UpperNodes;
         set<TCGNode*>    m_BottomNodes;
@@ -62,7 +63,9 @@ class TCGNode{
         int              m_depth;
         int              m_visited_counter;
         bool             m_is_visited;
-        int              m_rotated;    
+        int              m_rotated;
+        vector<TCGNode*> m_EMIBConnectedNodes;
+        vector<TCGNode*> m_EMIBCurrrentNodes;    
 };
 
 class CommonTCGPin: public pin{

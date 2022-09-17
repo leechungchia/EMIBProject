@@ -12,7 +12,7 @@ void TCGNode::SetVisited(queue<TCGNode*>& t_TCGNodeQueue){
 
 void TCGNode::ValueGenerate(){
     if(m_code_name != "source"){
-        float current_max = FLT_MIN;
+        float current_max = -55555555555;
         float height      = 0;
         for(auto it=m_BottomNodes.begin(); it != m_BottomNodes.end(); ++it){
             height = (*it)->value() + (*it)->weight();
@@ -53,6 +53,8 @@ void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
     m_target->UpperNodes()->clear();
     for(int i=0; i<t_TCGNodes->size(); ++i){
         t_TCGNodes->at(i)->HardInitialize();
+    }
+    for(int i=0; i<t_TCGNodes->size(); ++i){
         t_TCGNodes->at(i)->UpperInsert(m_target);
         t_TCGNodes->at(i)->BottomInsert(m_source);
         m_source->UpperInsert(t_TCGNodes->at(i));
@@ -63,17 +65,13 @@ void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
             t_TCGNodes->at(i)->BottomInsert(t_TCGNodes->at(i-1));
             t_TCGNodes->at(i-1)->UpperInsert(t_TCGNodes->at(i));
         }
-        m_target->BottomInsert(t_TCGNodes->at(t_TCGNodes->size()-1));
     }
     for(int i=0; i<t_TCGNodes->size(); ++i){
         t_TCGNodes->at(i)->ResetCounter();
     }
     m_source->ResetCounter();
     m_target->ResetCounter();
-    m_CoorGenerate();
-    for(int i=0; i<t_TCGNodes->size(); ++i){
-        cout << t_TCGNodes->at(i)->value() << endl;
-    }   
+    m_CoorGenerate(); 
 }
 
 void TCGNode::HardInitialize(){
