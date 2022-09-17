@@ -117,6 +117,40 @@ void EMIBNet::Legalize(bool t_state){
     }
 }
 
+vector<EMIBP*> EMIBP::Legalization(){
+    set<TCGNode*, node_comparator> node_set;
+    vector<TCGNode*>               record;
+    TCGNode*                       current_node;
+    for(int i=0; i<m_nodes.size(); ++i){
+        node_set.insert(m_nodes[i]);
+    }
+    while(node_set.size() != 0){
+        current_node = node_set.begin();
+        for(int i=0; i<m_nets[current_node].size(); ++i){
+            
+        }
+    }
+
+
+}
+/*
+vector<EMIBNet*> TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound){
+    queue<TCGNode*>            traverseQueue;
+    vector<TCGNode*>           ToppestNodes;
+    vector<vector<EMIBNet*>>   EMIBNets;
+    TCGNode*                   current_node;
+    for(int i=0; i<t_bound.size(); ++i){
+        traverseQueue.push(t_bound[i]);
+    }
+    while(traverseQueue.size() != 0){
+        current_node = traverseQueue.front();
+        traverseQueue.pop();
+        for(auto it = current_node->DirectUpperNodes()->begin(); it != current_node->DirectUpperNodes()->end(); ++it){
+            if((*it)){}
+        }
+    }
+}
+*/
 void TCGGraph::m_CoorGenerate(){
     queue<TCGNode*> NodeQueue;
     TCGNode* current_node;

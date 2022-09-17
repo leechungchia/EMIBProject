@@ -49,7 +49,7 @@ class TCGNode{
         void   SoftInitialize();
         set<TCGNode*>* UpperNodes(){return &m_UpperNodes;};
         set<TCGNode*>* DirectUpperNodes(){return &m_DirectUpperNodes;};
-        set<TCGNode*>* DirectUpperNodes(){return &m_DirectBottomNodes;};
+        set<TCGNode*>* DirectBottomNodes(){return &m_DirectBottomNodes;};
         set<TCGNode*>* BottomNodes(){return &m_BottomNodes;};
         TCGNode*       DualNode(){return m_DualNode;};
         void           SetDualNode(TCGNode* t_node){m_DualNode = t_node;};
@@ -93,7 +93,7 @@ class EMIBP {
         vector<EMIBP*> Legalization();
     private:
         vector<TCGNode*> m_nodes;
-        vector<vector<EMIBNet*>> m_nets;
+        map<TCGNode* , vector<EMIBNet*>> m_nets;
         vector<EMIBP*> m_upperEMIBP;
         vector<EMIBP*> m_bottomEMIBP;
 };
@@ -155,5 +155,16 @@ class TCG{
         vector<pair<CommonTCGPin*, CommonTCGPin*>> m_common_nets;
         unordered_map<int, TCGNode*> m_die_map;
         vector<vector<EMIBNet*>>     m_EMIBNets;
+};
+
+
+class node_comparator{
+    public:
+        bool operator()(TCGNode* a, TCGNode* b){return a->value() > b->value();};
+};
+
+class EMIBP_comparator{
+    public:
+        bool operator()(EMIBP*, EMIBP*);
 };
 #endif
