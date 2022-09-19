@@ -19,6 +19,7 @@ void TCGNode::ValueGenerate(){
             if(height > current_max){
                 current_max = height;
                 m_BaseNode = (*it);
+                
             }
         }
         m_value = current_max;
@@ -127,11 +128,9 @@ vector<EMIBP*> EMIBP::Legalization(){
     while(node_set.size() != 0){
         current_node = (*node_set.begin());
         for(int i=0; i<m_nets[current_node].size(); ++i){
-            continue;
+            
         }
     }
-
-
 }
 /*
 vector<EMIBNet*> TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound){

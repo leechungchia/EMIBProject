@@ -72,6 +72,13 @@ class TCGNode{
         bool             m_is_visited;
         int              m_rotated;
         int              m_ID;
+        
+        
+        
+        
+        
+        
+        
 };
 
 class EMIBNet {
@@ -85,6 +92,10 @@ class EMIBNet {
         float    m_distance;
         TCGNode* m_node_1;
         TCGNode* m_node_2;
+        
+        
+        
+        
 };
 
 class EMIBP {
@@ -116,6 +127,9 @@ class CommonTCGPin: public pin{
         CommonTCGPin*         m_dual_pin;
         TCGNode*              m_h_node;
         TCGNode*              m_v_node;
+        
+        
+        
 };
 
 class TCGGraph{
