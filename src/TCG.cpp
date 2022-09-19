@@ -125,9 +125,9 @@ vector<EMIBP*> EMIBP::Legalization(){
         node_set.insert(m_nodes[i]);
     }
     while(node_set.size() != 0){
-        current_node = node_set.begin();
+        current_node = (*node_set.begin());
         for(int i=0; i<m_nets[current_node].size(); ++i){
-            
+            continue;
         }
     }
 
