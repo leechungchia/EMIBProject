@@ -23,6 +23,9 @@
 
 using namespace std;
 
+class EMIBP;
+class EMIBNet;
+
 class TCGNode{
     public:
         TCGNode(string t_code_name, float t_weight):
@@ -56,6 +59,12 @@ class TCGNode{
         float          Overlap(TCGNode* t_node);
         float          Distance(TCGNode* t_node);
         int            ID(){return m_ID;};
+        int            EMIBCounter(){return m_EMIBCounter;};
+        void           decreaseEMIBCounter(){m_EMIBCounter--;};
+        bool           is_parsed(){return m_is_parsed;};
+        void           setParsed(bool t_parsed){m_is_parsed = t_parsed;};
+        vector<EMIBP*> EMIBPs;
+        vector<EMIBNet*> EMIBs;
     private:        
         set<TCGNode*>    m_UpperNodes;
         set<TCGNode*>    m_DirectUpperNodes;
@@ -72,6 +81,10 @@ class TCGNode{
         bool             m_is_visited;
         int              m_rotated;
         int              m_ID;
+        int              m_EMIBnum;
+        int              m_EMIBCounter;
+        bool             m_is_parsed;
+
         
         
         
@@ -83,15 +96,21 @@ class TCGNode{
 
 class EMIBNet {
     public:
-        EMIBNet(TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance):m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap){}
+        EMIBNet(TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance):m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap), m_is_visited(0){}
         bool isOverlapValid(bool t_state);
         bool isDistanceValid(bool t_state);
-        void Legalize(bool t_state);
+        bool Legalize(bool t_state);
+        TCGNode* node1(){return m_node_1;};
+        TCGNode* node2(){return m_node_2;};
+        TCGNode* dualnode(TCGNode* t_node){return (t_node == m_node_1)?m_node_2:m_node_1;};
+        bool  is_visited(){return m_is_visited;};
+        void  setvisited(bool t_visit){m_is_visited = t_visit;};
     private:
         float    m_overlap;
         float    m_distance;
         TCGNode* m_node_1;
         TCGNode* m_node_2;
+        bool     m_is_visited;
         
         
         
@@ -101,12 +120,15 @@ class EMIBNet {
 class EMIBP {
     public:
         EMIBP(){}
-        vector<EMIBP*> Legalization();
+        void Legalization(bool t_state, set<EMIBP*, EMIBP_comparator>& t_netvec);
+        set<EMIBP*, EMIBP_comparator> upperEMIBP;
+        set<EMIBP*, EMIBP_comparator> bottomEMIBP;
+        int     index(){return m_index;};
     private:
+        int  m_index;
+        void m_getbottomEMIBP(); 
         vector<TCGNode*> m_nodes;
         map<TCGNode* , vector<EMIBNet*>> m_nets;
-        vector<EMIBP*> m_upperEMIBP;
-        vector<EMIBP*> m_bottomEMIBP;
 };
 
 class CommonTCGPin: public pin{
@@ -141,7 +163,7 @@ class TCGGraph{
         void Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
     private:
         void     m_CoorGenerate();
-        vector<EMIBNet*>     m_TraverseToBound(vector<TCGNode*>& t_bound);
+        vector<EMIBP*>     m_TraverseToBound(vector<TCGNode*>& t_bound);
         EMIBP*   m_EMIBPSource;
         TCGNode* m_source;
         TCGNode* m_target;
@@ -179,6 +201,6 @@ class node_comparator{
 
 class EMIBP_comparator{
     public:
-        bool operator()(EMIBP*, EMIBP*);
+        bool operator()(EMIBP* a, EMIBP* b){return a->index() < b->index()};
 };
 #endif
