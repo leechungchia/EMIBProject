@@ -159,9 +159,8 @@ void EMIBP::Legalization(bool t_state, set<EMIBP*, EMIBP_comparator>& t_netvec){
     }
 }
 
-vector<EMIBP*> TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound){
+bool TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs){
     queue<TCGNode*>            traverseQueue;
-    vector<TCGNode*>           ToppestNodes;
     vector<vector<EMIBNet*>>   EMIBNets;
     set<TCGNode*>           newToppestNodes;
     TCGNode*                   current_node;
@@ -183,7 +182,7 @@ vector<EMIBP*> TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound){
             }
         }
     }
-    for(auto it=newToppestNodes.begin(); it!=newToppestNodes.end(); ++it){\
+    for(auto it=newToppestNodes.begin(); it!=newToppestNodes.end(); ++it){
         vector<EMIBNet*> temp;
         for(int i=0; i<(*it)->EMIBs.size(); ++i){
             if(newToppestNodes.find((*it)->EMIBs[i]->dualnode((*it))) != newToppestNodes.end()){
@@ -192,7 +191,144 @@ vector<EMIBP*> TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound){
         }
         EMIBNets.push_back(temp);
     }
-    
+    if(newToppestNodes.size() > 1 && EMIBNets[0].size() == 0){
+        return 0;
+    }
+    vector<vector<int>> record;
+    t_bound.clear();
+    for(auto it=newToppestNodes.begin(); it!=newToppestNodes.end(); ++it){
+        t_bound.push_back((*it));
+    }
+    m_unionfind(t_bound, EMIBNets, record);
+
+    for(int i=0; i<record.size(); ++i){
+        vector<TCGNode*> node_set;
+        vector<vector<EMIBNet*>> net_set;
+        for(int j=0; j<record[i].size(); ++j){
+            node_set.push_back(t_bound[record[i][j]]);
+            net_set.push_back(EMIBNets[record[i][j]]);
+        }
+        if(node_set.size() > 0){
+            EMIBP* new_EMIBP = new EMIBP(node_set, net_set);
+            m_EMIBPvec.push_back(new_EMIBP);
+            t_EMIBPs.push_back(new_EMIBP);
+        }
+    }
+    return 1;
+}
+
+void TCGGraph::Overlap_Legalization(){
+    vector<TCGNode*> bound;
+    vector<EMIBP*>   bound_EMIBs;
+    bound.push_back(m_source);
+    m_TraverseToBound(bound, bound_EMIBs);
+    while(bound_EMIBs.size() )
+}
+
+uf_node* TCGGraph::m_findroot(uf_node* t_node){
+    uf_node* temp = t_node;
+    vector<uf_node*> revised_nodes;
+    while(temp->uppernode !=0){
+        revised_nodes.push_back(temp);
+        temp = temp->uppernode;
+    }
+    for(int i=0; i<revised_nodes.size(); ++i){
+        revised_nodes[i]->uppernode = temp;
+    }
+    return temp;
+}
+
+void  TCGGraph::m_unionfind(vector<TCGNode*>& t_nodes, vector<vector<EMIBNet*>>& t_nets, vector<vector<int>>& t_record){
+    map<TCGNode*, int> node_map;
+    for(int i=0; i<t_nodes.size(); ++i){
+        node_map[t_nodes[i]] = i;
+    }
+    uf_node* root = new uf_node;
+    TCGNode* root_node = (*t_nodes.begin());
+    set<TCGNode*> exist_set;
+    set<uf_node*, uf_comparator> uf_subnodes;
+    uf_node temp;
+    uf_node temp_2;
+    set<uf_node*, uf_comparator>::iterator temp_iter;
+    set<uf_node*, uf_comparator>::iterator temp_iter_2;
+    uf_node* temp_node;
+    uf_node* temp_root;
+    uf_node* temp_2_root;
+    bool is_root;
+    bool temp_exist;
+    bool temp_2_exist;
+    root->node = root_node;
+    root->uppernode = 0;
+    uf_subnodes.insert(root);
+    for(int i=0; i<t_nets[0].size(); ++i){
+        uf_node* sub_node = new uf_node;
+        sub_node->node = (t_nets[0][i]->dualnode(root_node));
+        sub_node->uppernode = root;
+        uf_subnodes.insert(sub_node);
+    }
+    for(int i=1; i<t_nodes.size(); ++i){
+        is_root = 0;
+        temp.node = t_nodes[i];
+        temp_iter = uf_subnodes.find(&temp);
+        temp_exist = !(temp_iter == uf_subnodes.end());
+        temp_node = (temp_exist)?(*temp_iter):(0);
+        if(temp_iter == uf_subnodes.end())
+        for(int j=0; j<t_nets[i].size(); ++j){
+            temp_2.node = t_nets[i][j]->dualnode(t_nodes[i]);
+            temp_iter_2 = uf_subnodes.find(&temp_2);
+            temp_2_exist = !(temp_iter_2 == uf_subnodes.end());
+            if(!temp_exist && !temp_2_exist){
+                uf_node* new_root = new uf_node;
+                new_root->node = temp.node;
+                new_root->uppernode = 0;
+                uf_node* new_node = new uf_node;
+                new_node->node = temp_2.node;
+                new_node->uppernode = new_root;
+                uf_subnodes.insert(new_root);
+                uf_subnodes.insert(new_node);
+                temp_exist = 1;
+                temp_node = new_root;
+            }
+            else if(!temp_exist && temp_2_exist){
+                uf_node* new_node = new uf_node;
+                new_node->node = temp.node;
+                new_node->uppernode = (*temp_iter_2);
+                temp_exist = 1;
+                uf_subnodes.insert(new_node);
+                temp_node = new_node;
+            }
+            else if(temp_exist && !temp_2_exist){
+                uf_node* new_node = new uf_node;
+                new_node->node = temp_2.node;
+                new_node->uppernode = temp_node;
+                uf_subnodes.insert(new_node); 
+            }
+            else{
+                temp_root = m_findroot(temp_node);
+                temp_2_root = m_findroot((*temp_iter_2));
+                if(temp_root != temp_2_root){
+                    temp_2_root->uppernode = temp_root;
+                }
+            }
+        }
+    }
+    map<TCGNode*, int> set_map;
+    TCGNode*           root_TCG;
+    for(auto it=uf_subnodes.begin(); it!=uf_subnodes.end(); ++it){
+        root_TCG = m_findroot((*it))->node;
+        if(set_map.find(root_TCG) == set_map.end()){
+            set_map[root_TCG] = set_map.size();
+            vector<int> sub_record;
+            sub_record.push_back(node_map[(*it)->node]);
+            t_record.push_back(sub_record);
+        }
+        else{
+            t_record[set_map[root_TCG]].push_back(node_map[(*it)->node]);
+        }
+    }
+    for(auto it=uf_subnodes.begin(); it!=uf_subnodes.end(); ++it){
+        delete (*it);
+    }
 }
 void TCGGraph::m_CoorGenerate(){
     queue<TCGNode*> NodeQueue;
