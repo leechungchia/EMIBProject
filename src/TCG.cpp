@@ -499,7 +499,7 @@ void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
             code_name = to_string(m_EMIBInf->at(i).node_1) + " " + to_string(m_EMIBInf->at(i).node_2);
             overlap = m_EMIBInf->at(i).overlap;
             distance = m_EMIBInf->at(i).distance;
-            EMIBNet* net(code_name, node_1, node_2, overlap, distance);
+            EMIBNet* net = new EMIBNet(code_name, node_1, node_2, overlap, distance);
         }
     }
 }
