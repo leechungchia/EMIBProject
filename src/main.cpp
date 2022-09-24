@@ -10,6 +10,8 @@ int main(int argc,char* argv[])
 {
     time_t start = time(0);
     //GlobalPlacer placer(argv[1], "random", 15);
+    GlobalPlacer placer();
+    placer.
     //placer.do_partial_placement();
     /*
     placer.OverallPlacer->set_bstar_parameter(0.3,0.4,0.3);

@@ -39,6 +39,22 @@ public:
         PartialPlacers.push_back(new_partialplacer);
         cout << "Initialization Finished" << endl;
     }
+    GlobalPlacer(){
+        die* t_0 = new die("t0", 3, 4, 0);
+        die* t_1 = new die("t1", 2, 3, 1);
+        die* t_2 = new die("t2", 3, 7, 2);
+        die* t_3 = new die("t3", 1, 3, 3);
+        die* t_4 = new die("t4", 1, 2, 4);
+        m_DieVec.push_back(t_0);
+        m_DieVec.push_back(t_1);
+        m_DieVec.push_back(t_2);
+        m_DieVec.push_back(t_3);
+        m_DieVec.push_back(t_4);
+        SA* new_partialplacer = new SA();
+        PartialPlacers.push_back(new_partialplacer);
+        cout << "Initialization Finished" << endl;
+        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "TCG");
+    }
     SA* OverallPlacer;
     vector<SA*> PartialPlacers;
     void write_output(char* arg1, char* arg2, char* arg3);

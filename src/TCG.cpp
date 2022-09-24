@@ -150,7 +150,7 @@ bool EMIBNet::isDistanceValid(){
 
 
 
-/*
+
 
 void EMIBP::m_getbottomEMIBP(){
     for(int i=0; i<m_nodes.size(); ++i){
@@ -160,7 +160,6 @@ void EMIBP::m_getbottomEMIBP(){
         }
     }
 }
-
 bool EMIBP::Legalization(vector<EMIBP*>& t_netset, map<EMIBNet*, int>& t_legal_check){
     set<TCGNode*, node_comparator> node_set;
     vector<TCGNode*>               record;
@@ -213,7 +212,6 @@ bool EMIBP::Legalization(vector<EMIBP*>& t_netset, map<EMIBNet*, int>& t_legal_c
     }
     return 1;
 }
-
 void EMIBP::Legalization(vector<TCGNode*>& t_nodes){
     set<TCGNode*, node_comparator> node_set;
     vector<TCGNode*>               record;
@@ -296,54 +294,26 @@ bool TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EM
             new_EMIBP->setindex(m_EMIBdepth);
             m_EMIBPvec.push_back(new_EMIBP);
             t_EMIBPs.push_back(new_EMIBP);
-            for(int j=0; j<node_set.size(); ++j){
-                node_set[j]->EMIBPs.push_back(new_EMIBP);
-                node_set[j]->decreaseEMIBCounter(net_set[j].size());
-            }
         }
     }
     m_EMIBdepth++;
     return 1;
 }
-
-void TCGGraph::m_UpdateAbove(vector<TCGNode*>& t_nodes){
-    queue<TCGNode*> update_queue;
-    TCGNode*        current_node;
-    for(int i=0; i<t_nodes.size(); ++i){
-        for(auto it=t_nodes[i]->DirectUpperNodes()->begin(); it!=t_nodes[i]->DirectUpperNodes()->end(); ++it){
-            update_queue.push((*it));
-        }
-    }
-    while(update_queue.size() > 0){
-        current_node = update_queue.front();
-        update_queue.pop();
-        current_node->ValueUpdate(update_queue);
-    }
-}
 bool TCGGraph::Overlap_Legalization(){
     vector<TCGNode*> bound;
     vector<EMIBP*>   bound_EMIBs;
     vector<EMIBP*> belowEMIBset;
+    vector<>
     bool           backtrack_success;
     bound.push_back(m_source);
     bool graph_state = state();
     bool           bound_success;
+    bool           legalization_success;
     bound_success = m_TraverseToBound(bound, bound_EMIBs);
     while(bound_success && bound_EMIBs.size() > 0){
         for(int i=0; i<bound_EMIBs.size(); ++i){
-            map<EMIBNet*, int> legal_check;
-            backtrack_success = bound_EMIBs[i]->Legalization(belowEMIBset, legal_check);
-            while(backtrack_success && belowEMIBset.size() > 0){
-                sort(belowEMIBset.begin(), belowEMIBset.end(), [](EMIBP* a, EMIBP* b){return a->index() < b->index();});
-                for(auto it=belowEMIBset.begin(); it!=belowEMIBset.end(); ++it){
-                    vector<TCGNode*> revised_nodes;
-                    (*it)->Legalization(revised_nodes);
-                    m_UpdateAbove(revised_nodes);
-                }
-                belowEMIBset.clear();
-                backtrack_success = bound_EMIBs[i]->Legalization(belowEMIBset, legal_check);
-            }
-            if(!backtrack_success){
+            legalization_success = legal->Legalization(bound_EMIBs[i]);
+            if(!legalization_success){
                 return 0;
             }
         }
@@ -354,7 +324,6 @@ bool TCGGraph::Overlap_Legalization(){
     }
     return 1;
 }
-
 uf_node* TCGGraph::m_findroot(uf_node* t_node){
     uf_node* temp = t_node;
     vector<uf_node*> revised_nodes;
@@ -367,7 +336,6 @@ uf_node* TCGGraph::m_findroot(uf_node* t_node){
     }
     return temp;
 }
-
 void  TCGGraph::m_unionfind(vector<TCGNode*>& t_nodes, vector<vector<EMIBNet*>>& t_nets, vector<vector<int>>& t_record){
     map<TCGNode*, int> node_map;
     for(int i=0; i<t_nodes.size(); ++i){
@@ -460,57 +428,105 @@ void  TCGGraph::m_unionfind(vector<TCGNode*>& t_nodes, vector<vector<EMIBNet*>>&
         delete (*it);
     }
 }
-*/
-
 void TCGGraph::m_CoorGenerate(){
 }
-
-
-
 void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
     m_source->BottomNodes()->clear();
     m_source->UpperNodes()->clear();
     m_target->BottomNodes()->clear();
     m_target->UpperNodes()->clear();
+    TCGNode* n_0 = t_TCGNodes->at(0);
+    TCGNode* n_1 = t_TCGNodes->at(1);
+    TCGNode* n_2 = t_TCGNodes->at(2);
+    TCGNode* n_3 = t_TCGNodes->at(3);
+    TCGNode* n_4 = t_TCGNodes->at(4);
     for(int i=0; i<t_TCGNodes->size(); ++i){
-        t_TCGNodes->at(i)->HardInitialize();
-    }
-    for(int i=0; i<t_TCGNodes->size(); ++i){
-        t_TCGNodes->at(i)->UpperInsert(m_target);
         t_TCGNodes->at(i)->BottomInsert(m_source);
+        t_TCGNodes->at(i)->UpperInsert(m_target);
         m_source->UpperInsert(t_TCGNodes->at(i));
         m_target->BottomInsert(t_TCGNodes->at(i));
     }
     if(t_is_activated){
-        for(int i=1; i<t_TCGNodes->size(); ++i){
-            t_TCGNodes->at(i)->BottomInsert(t_TCGNodes->at(i-1));
-            t_TCGNodes->at(i-1)->UpperInsert(t_TCGNodes->at(i));
-        }
+        n_0->UpperInsert(n_1);
+        n_0->DirectUpperNodes()->insert(n_1);
+        n_1->BottomInsert(n_0);
+        n_1->DirectBottomNodes()->insert(n_0);
+        n_3->UpperInsert(n_4);
+        n_3->DirectUpperNodes()->insert(n_4);
+        n_4->BottomInsert(n_3);
+        n_4->DirectBottomNodes()->insert(n_3);
     }
-    for(int i=0; i<t_TCGNodes->size(); ++i){
-        t_TCGNodes->at(i)->ResetCounter();
+    else{
+        n_2->UpperInsert(n_3);
+        n_2->DirectUpperNodes()->insert(n_3);
+        n_3->BottomInsert(n_2);
+        n_3->DirectBottomNodes()->insert(n_2);
+        n_2->UpperInsert(n_4);
+        n_2->DirectUpperNodes()->insert(n_4);
+        n_4->BottomInsert(n_2);
+        n_4->DirectBottomNodes()->insert(n_2);
+        n_0->UpperInsert(n_2);
+        n_0->DirectUpperNodes()->insert(n_2);
+        n_2->BottomInsert(n_0);
+        n_2->DirectBottomNodes()->insert(n_0);
+        n_1->UpperInsert(n_2);
+        n_1->DirectUpperNodes()->insert(n_2);
+        n_2->BottomInsert(n_1);
+        n_2->DirectBottomNodes()->insert(n_1);
+        n_0->UpperInsert(n_3);
+        n_0->UpperInsert(n_4);
+        n_3->BottomInsert(n_0);
+        n_4->BottomInsert(n_0);
+        n_1->UpperInsert(n_3);
+        n_1->UpperInsert(n_4);
+        n_3->BottomInsert(n_1);
+        n_4->BottomInsert(n_1);
     }
     m_source->ResetCounter();
     m_target->ResetCounter();
     m_CoorGenerate(); 
 }
+void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
+    TCGNode* node_1;
+    TCGNode* node_2;
+    string code_name;
+    float overlap;
+    float distance;
+    for(int i=0; i<m_EMIBInf->size(); ++i){
+        node_1 = t_TCGNodes->at(m_EMIBInf->at(i).node_1);
+        node_2 = t_TCGNodes->at(m_EMIBInf->at(i).node_2);
+        if(node_1->UpperNodes()->find(node_2) != node_1->UpperNodes()->end() || node_2->UpperNodes()->find(node_1) != node_2->UpperNodes()->end()){
+            code_name = to_string(m_EMIBInf->at(i).node_1) + " " + to_string(m_EMIBInf->at(i).node_2);
+            overlap = m_EMIBInf->at(i).overlap;
+            distance = m_EMIBInf->at(i).distance;
+            EMIBNet* net(code_name, node_1, node_2, overlap, distance);
+        }
+    }
+}
 
-void Legalizer::FindIllegal(EMIBP* t_EMIBP, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet){
+
+
+
+void Legalizer::FindIllegal(EMIBP* t_EMIBP, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet){
+    t_WrongSet.clear();
+    t_CorrectSet.clear();
     float overlap;
     for(auto it=t_EMIBP->NetMap()->begin(); it!=t_EMIBP->NetMap()->end(); ++it){
         for(int i=0; i<(it->second).size();++i){
             if(!(it->second)[i]->isOverlapValid(overlap)){
                 t_WrongSet.insert((it->second)[i]);
             }
+            else{
+                t_CorrectSet.insert((it->second)[i]);
+            }
         }
     }
 }
-
-void Legalizer::FindCritical(TCGNode* t_high, TCGNode* t_low, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet){
+void Legalizer::FindCritical(EMIBNet*& t_EMIBNet, TCGNode*& t_high, TCGNode*& t_low, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet){
     EMIBNet* current_net = (*t_WrongSet.begin());
     current_net->LowHighDerive(t_high, t_low);
+    t_EMIBNet = current_net;
 }
-
 bool Legalizer::SetLegal(EMIBNet* t_EMIBNet){
     TCGNode* node_1;
     TCGNode* node_2;
@@ -526,24 +542,136 @@ bool Legalizer::SetLegal(EMIBNet* t_EMIBNet){
         return 1;
     }
 }
-
-
 void Legalizer::CheckViolation(set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, set<EMIBNet*, EMIBNet_comparator>& t_newWrongSet){
     float new_overlap;
-    for(auto it=t_CorrectSet.begin(); it!=t_CorrectSet.end(); ++it){
+    for(auto it=t_CorrectSet.begin(); it!=t_CorrectSet.end();){
         if(!(*it)->isOverlapValid(new_overlap)){
             t_newWrongSet.insert((*it));
+            t_CorrectSet.erase(it++);
+        }
+        else{
+            ++it;
         }
     }
 }
-void Legalizer::UpdateAbove(TCGNode* t_node, vector<TCGNode*>& t_NodeSet){
+void Legalizer::UpdateAbove(TCGNode* t_node, set<TCGNode*>& t_NodeSet){
     for(auto it=t_node->DirectUpperNodes()->begin(); it!=t_node->DirectUpperNodes()->end(); ++it){
         if((*it)->ValueUpdate()){
-            t_NodeSet.push_back((*it));
+            t_NodeSet.insert((*it));
         }
     }
 }
-void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<float, float>, pair<float, float>>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap){
+void Legalizer::EMIBPUpdate(EMIBP* t_EMIBP, set<TCGNode*>& t_UpdateNodes){
+    set<EMIBNet*, EMIBNet_comparator> WrongSet;
+    set<EMIBNet*, EMIBNet_comparator> new_WrongSet;
+    set<EMIBNet*, EMIBNet_comparator> new_WrongSet_2;
+    set<EMIBNet*, EMIBNet_comparator> CorrectSet;
+    FindIllegal(t_EMIBP, WrongSet, CorrectSet);
+    TCGNode* high;
+    TCGNode* low;
+    EMIBNet* net;
+    while(WrongSet.size() > 0){
+        FindCritical(net, high, low, WrongSet);
+        SetLegal(net);
+        t_UpdateNodes.insert(low);
+        CheckViolation(CorrectSet, new_WrongSet);
+        while(new_WrongSet.size() > 0){
+            (*new_WrongSet.begin())->LowHighDerive(high, low);
+            SetLegal((*new_WrongSet.begin()));
+            t_UpdateNodes.insert(low);
+            CheckViolation(CorrectSet, new_WrongSet_2);
+            new_WrongSet.erase(new_WrongSet.begin());
+            new_WrongSet.insert(new_WrongSet_2.begin(), new_WrongSet_2.end());
+            new_WrongSet_2.clear();
+        }
+        CorrectSet.clear();
+        WrongSet.clear();
+        FindIllegal(t_EMIBP, CorrectSet, WrongSet);
+    }
+}
+void Legalizer::SelfUpdate(TCGNode* t_node, set<TCGNode*>& t_UpdateNodeSet){
+    set<EMIBP*, EMIBP_comparator> EMIBPSet;
+    EMIBPSet.insert(t_node->EMIBPs.begin(), t_node->EMIBPs.end());
+    UpdateAbove(t_node, t_UpdateNodeSet);
+    for(auto it=EMIBPSet.begin(); it!=EMIBPSet.end(); ++it){
+        EMIBPUpdate((*it), t_UpdateNodeSet);
+    }
+}
+bool Legalizer::BranchUpdate(EMIBNet* t_EMIBNet, TCGNode* t_high, TCGNode* t_low, set<EMIBNet*, EMIBNet_comparator>& t_newWrongSet, pair<TCGNode*, TCGNode*>& t_target, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, bool t_state){
+    set<TCGNode*> UpdateNodes;
+    set<TCGNode*> new_UpdateNodes;
+    SelfUpdate(t_low, UpdateNodes);
+    set<TCGNode*, node_comparator> ProcessOrder;
+    TCGNode*      current_node;
+    TCGNode*      high;
+    TCGNode*      low;
+    float         overlap;
+    ProcessOrder.insert(UpdateNodes.begin(), UpdateNodes.end());
+    while(ProcessOrder.size() > 0){
+        current_node = (*ProcessOrder.begin());
+        SelfUpdate(current_node, new_UpdateNodes);
+        ProcessOrder.erase(ProcessOrder.begin());
+        ProcessOrder.insert(new_UpdateNodes.begin(), new_UpdateNodes.end());
+    }
+    if(!t_EMIBNet->isOverlapValid(overlap)){
+        return 0;
+    }
+    else{
+        CheckViolation(t_CorrectSet, t_newWrongSet);
+        if(t_state){
+            t_target.first = high;
+            t_target.second = low;
+        }
+        else{
+            for(auto it=t_newWrongSet.begin(); it!=t_newWrongSet.end(); ++it){
+                (*it)->LowHighDerive(high, low);
+                if(high == t_target.first && low == t_target.second){
+                    return 0;
+                }
+            }
+        }
+        t_CorrectSet.insert(t_EMIBNet);
+        return 1;
+    }
+}
+bool Legalizer::CompleteUpdate(EMIBNet* t_EMIBNet, TCGNode* t_high, TCGNode* t_low, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet){
+    set<EMIBNet*, EMIBNet_comparator> newWrongSet;
+    set<EMIBNet*, EMIBNet_comparator> newWrongSet_2;
+    pair<TCGNode*, TCGNode*> target;
+    TCGNode* high;
+    TCGNode* low;
+    EMIBNet* current_net;
+    bool success = BranchUpdate(t_EMIBNet, t_high, t_low, newWrongSet, target, t_CorrectSet, 1);
+    if(!success){
+        return 0;
+    }
+    while(newWrongSet.size() > 0){
+        current_net = (*newWrongSet.begin());
+        current_net->LowHighDerive(high, low);
+        success = BranchUpdate(current_net, high, low, newWrongSet_2, target, t_CorrectSet, 0);
+        if(!success){
+            return 0;
+        }
+        newWrongSet.erase(newWrongSet.begin());
+        newWrongSet.insert(newWrongSet_2.begin(), newWrongSet_2.end());
+    }
+    return 1;
+}
+bool Legalizer::Legalization(EMIBP* t_EMIBP){
+    set<EMIBNet*, EMIBNet_comparator> CorrectSet;
+    set<EMIBNet*, EMIBNet_comparator> WrongSet;
+    TCGNode* high;
+    TCGNode* low;
+    EMIBNet* current_net;
+    FindIllegal(t_EMIBP, WrongSet, CorrectSet);
+    while(WrongSet.size() > 0){
+        FindCritical(current_net, high, low, WrongSet);
+        CompleteUpdate(current_node, high, low, CorrectSet, WrongSet);
+        FindIllegal(t_EMIBP, WrongSet, CorrectSet);
+    }
+}
+
+void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<float, float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap){
     string node_name_h;
     string node_name_v;
     string pin_name_1;
@@ -561,21 +689,22 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<pair<f
         m_die_map[i] = new_node_h;
     }
     for(int i=0; i<t_PinVec.size(); ++i){
-        pin_name_1 = "TCGPin_node" + to_string(t_PinNodeMap[i].first) + "_" + to_string(2*i);
-        pin_name_1 = "TCGPin_node" + to_string(t_PinNodeMap[i].second) + "_" + to_string(2*i+1);
-        CommonTCGPin* new_pin_1 = new CommonTCGPin(pin_name_1, t_PinVec[i].first.first, t_PinVec[i].first.second);
-        CommonTCGPin* new_pin_2 = new CommonTCGPin(pin_name_2, t_PinVec[i].second.first, t_PinVec[i].second.second);
-        new_pin_1->set_dual_pin(new_pin_2);
-        new_pin_2->set_dual_pin(new_pin_1);
-        new_pin_1->set_TCGNode(m_HCGNodes.at(t_PinNodeMap[i].first), m_VCGNodes.at(t_PinNodeMap[i].first));
-        new_pin_2->set_TCGNode(m_HCGNodes.at(t_PinNodeMap[i].second), m_VCGNodes.at(t_PinNodeMap[i].second));
-        m_common_nets.push_back(make_pair(new_pin_1, new_pin_2));
+        float overlap = t_PinVec[i].first;
+        float distance = t_PinVec[i].second;
+        int   node_1 = t_PinNodeMap[i].first;
+        int   node_2 = t_PinNodeMap[i].second;
+        pin_name = "TCGEMIB_node" + to_string(t_PinNodeMap[i].first) + "_" + to_string(t_PinNodeMap[i].first);
+        EMIBInf inf(overlap, distance, node_1, node_2);
+        m_EMIBInfs.push_back(inf);
     }
 }
-
 void TCG::Initialize(){
     m_HCG->Initialize(&m_HCGNodes, 1);
     m_VCG->Initialize(&m_VCGNodes, 0);
+    m_HCG->SetEMIBInf(m_EMIBInfs);
+    m_HCG->SetEMIBInf(m_EMIBInfs);
+    m_HCG->Overlap_Legalization();
+    m_VCG->Overlap_Legalization();
 }
 vector<float> TCG::get_dies_coor(int t_die_index){
     vector<float> die_inf;

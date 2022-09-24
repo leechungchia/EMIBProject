@@ -59,6 +59,15 @@ private:
     die*               m_die;
 };
 
+class EMIB{
+    public:
+        EMIB()  
+        die* die_1;
+        die* die_2;
+        float overlap;
+        float distance;
+};
+
 
 
 

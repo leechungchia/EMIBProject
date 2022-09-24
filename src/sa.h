@@ -72,14 +72,17 @@ public:
             m_best_cost = get_current_cost();
             cout << "Construct B*-tree successfully" << endl;
         }
-        else if(m_structure == "TCG"){
+    }
+    void InputData(vector<pair<float, float>> t_DieVec, 
+                vector<pair<float, float>> t_EMIBNetVec, 
+                vector<pair<int, int>> t_MappingEMIBToDie,
+                string t_structure){
             cout << "TCG mode" << endl;
             m_TCG = new TCG();
-            m_TCG->TCGConstruct(t_DieVec, t_CommonNetVec, t_MappingCommonPinToDie);
+            m_TCG->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
             cout << "TCGNode Constructed successfully" << endl;
             m_TCG->Initialize();
             cout << "TCG Initialization successfully" << endl;
-        }
     }
     void  set_random_seed(int t_seed);
     void  set_profile_parameter(float t_bound_arg, float t_area_arg, float t_hpwl_arg);
