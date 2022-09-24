@@ -27,6 +27,7 @@ class EMIBP;
 class EMIBNet;
 class TCGNode;
 class EMIBP_comparator;
+class Legalizer;
 
 
 
@@ -42,10 +43,9 @@ class EMIBP {
         EMIBP(){}
         bool Legalization(vector<EMIBP*>& t_netset, map<EMIBNet*, int>& t_legal_check);
         void Legalization(vector<TCGNode*>& t_nodes);
-        set<EMIBP*, EMIBP_comparator> upperEMIBP;
-        set<EMIBP*, EMIBP_comparator> bottomEMIBP;
         int     index(){return m_index;};
         void    setindex(int t_index){m_index = t_index;};
+        map<TCGNode* , vector<EMIBNet*>>* NetMap(){return &m_nets;};
     private:
         int  m_index;
         void m_getbottomEMIBP(); 
@@ -55,7 +55,7 @@ class EMIBP {
 
 class EMIBP_comparator{
     public:
-        bool operator()(EMIBP* a, EMIBP* b){return a->index() < b->index()};
+        bool operator()(EMIBP* a, EMIBP* b){return a->index() < b->index();};
 };
 
 class TCGNode{
@@ -64,6 +64,7 @@ class TCGNode{
         m_code_name(t_code_name), m_initial_weight(t_weight), m_weight(t_weight), m_value(0), m_is_visited(1), m_depth(-1), m_visited_counter(0), m_rotated(0){}
         void   ValueGenerate();
         bool   ValueUpdate(queue<TCGNode*>& t_nodes);
+        bool   ValueUpdate();
         float  value(){return m_value;}
         void   Setvalue(float t_value){m_value = t_value;};
         float  weight(){return m_weight;}
@@ -124,17 +125,30 @@ class TCGNode{
         bool             m_is_parsed;   
 };
 
+//cdcdcdcdccd
+
 class EMIBNet {
     public:
         EMIBNet(TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance):m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap), m_is_visited(0){}
-        bool isOverlapValid();
+        bool isOverlapValid(float& t_overlap);
         bool isDistanceValid();
         bool Legalize();
+        float OverlapValue(){return m_overlap;};
         TCGNode* node1(){return m_node_1;};
         TCGNode* node2(){return m_node_2;};
         TCGNode* dualnode(TCGNode* t_node){return (t_node == m_node_1)?m_node_2:m_node_1;};
         bool  is_visited(){return m_is_visited;};
         void  setvisited(bool t_visit){m_is_visited = t_visit;};
+        void LowHighDerive(TCGNode* t_high, TCGNode* t_low){
+            if(m_node_1->value() > m_node_2->value()){
+                t_high = m_node_1;
+                t_low = m_node_2;
+            }
+            else{
+                t_high = m_node_2;
+                t_low  = m_node_1;
+            }
+        };
     private:
         float    m_overlap;
         float    m_distance;
@@ -168,18 +182,46 @@ class CommonTCGPin: public pin{
         
 };
 
+class EMIBNet_comparator{
+    public:
+        bool operator()(EMIBNet* a, EMIBNet* b){
+            float a_overlap; 
+            float b_overlap;
+            a->isOverlapValid(a_overlap);
+            b->isOverlapValid(b_overlap);
+            return a_overlap < b_overlap; 
+            };
+};
+
+class Legalizer{
+
+
+    public:
+
+        Legalizer();
+        void FindIllegal(EMIBP* t_EMIBP, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet);
+        void FindCritical(TCGNode* t_high, TCGNode* t_low, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet);
+        bool SetLegal(EMIBNet* t_EMIBNet);
+        void CheckViolation(set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, set<EMIBNet*, EMIBNet_comparator>& t_newWrongSet);
+        void UpdateAbove(TCGNode* t_node, vector<TCGNode*>& t_NodeSet);
+    private:
+
+};
+
 class uf_node{
     public:
         TCGNode* node;
         uf_node* uppernode;
 };
 
+
+
 class TCGGraph{
     public:
         TCGGraph(string t_direction_type):m_direction_type(t_direction_type){
             m_source = new TCGNode("source", 0);
             m_target = new TCGNode("target", 0);
-            EMIBdepth = 0;
+            m_EMIBdepth = 0;
         }
         void Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
         bool Overlap_Legalization();
@@ -229,10 +271,13 @@ class node_comparator{
 
 
 
+
+
 class uf_comparator{
     public: 
         bool operator()(uf_node* a, uf_node* b){return a->node < b->node; };
-}
+};
 #endif
 
 
+ 
