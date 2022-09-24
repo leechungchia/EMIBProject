@@ -20,6 +20,35 @@ void GlobalPlacer::m_read_die_input(char* arg)
     }
 }
 
+int GlobalPlacer::m_search_die(string t_name){
+    for(int i=0; i<m_DieVec.size(); ++i){
+        if(m_DieVec[i]->code_name() == t_name){
+            return i;
+        }
+    }
+    return -1;
+}
+void GlobalPlacer::m_read_EMIB_input(char* arg)
+{
+	ifstream data(arg);
+    if(!data)
+    {
+        cout << "die input error" << endl;
+    }
+    string die_1;
+    string die_2;
+    float  overlap;
+    float  distance;
+    while(data >> die_1)
+    {
+        data >> die_2;
+        data >> overlap;
+        data >> distance;
+        EMIB* temp = new EMIB(m_search_die(die_1), m_search_die(die_2), overlap, distance);
+        m_EMIBNets.push_back(temp);
+    }
+}
+
 void GlobalPlacer::m_read_net_input(string arg, int net_num)
 {
     if(arg == "random")
@@ -119,6 +148,14 @@ vector<pair<pair<float, float>, pair<float, float>>> GlobalPlacer::m_TransformCo
     }
     return inf;
 }
+
+vector<pair<float, float>>  GlobalPlacer::m_TransformEMIBToTCG(){
+    vector<pair<float, float>> inf;
+    for(int i=0; i<m_EMIBNets.size(); ++i){
+        inf.push_back(make_pair(m_EMIBNets[i]->overlap, m_EMIBNets[i]->distance));
+    }
+    return inf;
+}
 vector<pair<int, int>> GlobalPlacer::m_MappingCommonPinToDie(){
     vector<pair<int, int>> inf;
     for(int i=0; i<m_CommonNetVec.size(); ++i){
@@ -127,5 +164,12 @@ vector<pair<int, int>> GlobalPlacer::m_MappingCommonPinToDie(){
     return inf;
 }
 
+vector<pair<int, int>> GlobalPlacer::m_MappingEMIBToDie(){
+    vector<pair<float, float>> inf;
+    for(int i=0; i<m_EMIBNets.size(); ++i){
+        inf.push_back(make_pair(m_EMIBNets[i]->die_1, m_EMIBNets[i]->die_2));
+    }
+    return inf;
+}
 
 

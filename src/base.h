@@ -61,7 +61,7 @@ private:
 
 class EMIB{
     public:
-        EMIB()  
+        EMIB(die* t_die_1, die* t_die_2, float t_overlap, float t_distance):die_1(t_die_1), die_2(t_die_2), overlap(t_overlap), distance(t_distance){}  
         die* die_1;
         die* die_2;
         float overlap;

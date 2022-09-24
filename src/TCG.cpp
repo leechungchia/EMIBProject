@@ -492,20 +492,24 @@ void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
     string code_name;
     float overlap;
     float distance;
+    for(int i=0; i<t_TCGNodes->size(); ++i){
+        vector<EMIBNet*> temp;
+        m_Nets.push_back(temp);
+    }
     for(int i=0; i<m_EMIBInf->size(); ++i){
         node_1 = t_TCGNodes->at(m_EMIBInf->at(i).node_1);
         node_2 = t_TCGNodes->at(m_EMIBInf->at(i).node_2);
         if(node_1->UpperNodes()->find(node_2) != node_1->UpperNodes()->end() || node_2->UpperNodes()->find(node_1) != node_2->UpperNodes()->end()){
-            code_name = to_string(m_EMIBInf->at(i).node_1) + " " + to_string(m_EMIBInf->at(i).node_2);
+            code_name = to_string(m_EMIBInf->at(i).node_1) + "_" + to_string(m_EMIBInf->at(i).node_2);
             overlap = m_EMIBInf->at(i).overlap;
             distance = m_EMIBInf->at(i).distance;
             EMIBNet* net = new EMIBNet(code_name, node_1, node_2, overlap, distance);
+            EMIBNet* net_2 = new EMIBNet(code_name, node_2, node_1, overlap, distance);
+            m_Nets[m_EMIBInf->at(i).node_1].push_back(net);
+            m_Nets[m_EMIBInf->at(i).node_2].push_back(net_2);
         }
     }
 }
-
-
-
 
 void Legalizer::FindIllegal(EMIBP* t_EMIBP, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet){
     t_WrongSet.clear();
@@ -699,10 +703,12 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<float,
     }
 }
 void TCG::Initialize(){
+    m_HCG->SetEMIBInf(m_EMIBInfs);
+    m_HCG->SetEMIBInf(m_EMIBInfs);
     m_HCG->Initialize(&m_HCGNodes, 1);
     m_VCG->Initialize(&m_VCGNodes, 0);
-    m_HCG->SetEMIBInf(m_EMIBInfs);
-    m_HCG->SetEMIBInf(m_EMIBInfs);
+    m_HCG->EMIBNetDerive(&m_HCGNodes);
+    m_VCG->EMIBNetDerive(&m_VCGNodes);
     m_HCG->Overlap_Legalization();
     m_VCG->Overlap_Legalization();
 }

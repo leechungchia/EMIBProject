@@ -53,14 +53,14 @@ public:
         SA* new_partialplacer = new SA();
         PartialPlacers.push_back(new_partialplacer);
         cout << "Initialization Finished" << endl;
-        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "TCG");
+        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformEMIBToTCG(), m_MappingEMIBToDie(), "TCG");
     }
     SA* OverallPlacer;
     vector<SA*> PartialPlacers;
     void write_output(char* arg1, char* arg2, char* arg3);
     void set_random_seed(int t_seed){m_seed = t_seed;}
     void do_partial_placement(){
-        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "TCG");
+        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformEMIBToTCG(), m_MappingEMIBToDie(), "TCG");
         vector<vector<float>> die_inf = PartialPlacers[0]->get_dies_inf();
         for(int i=0; i<m_DieVec.size(); ++i){
             m_DieVec[i]->set_x(die_inf[i][0]);
@@ -82,13 +82,17 @@ public:
 private:
     void m_read_die_input(char* arg);
     void m_read_net_input(string arg, int net_num);
+    void m_read_EMIB_input(char* arg);
     void m_random_net_generate(int num);
+    int m_search_die(string t_name);
     vector<pair<float, float>> m_TransformDieToBstar();
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();
+    vector<pair<float, float>>                           m_TransformEMIBToTCG();
     vector<pair<int, int>> m_MappingCommonPinToDie();
+    vector<pair<int, int>> m_MappingEMIBToDie();
     vector<die*> m_DieVec;
     vector<pair<CommonPin*, CommonPin*>> m_CommonNetVec;
-    map<pair<die*, die*>, pair<float, float>> m_EMIBNet;
+    vector<EMIB*> m_EMIBNets;
     int          m_seed;
 };
 
