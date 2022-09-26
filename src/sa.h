@@ -74,7 +74,7 @@ public:
         }
     }
     void InputData(vector<pair<float, float>> t_DieVec, 
-                vector<pair<float, float>> t_EMIBNetVec, 
+                vector<vector<float>> t_EMIBNetVec, 
                 vector<pair<int, int>> t_MappingEMIBToDie,
                 string t_structure){
             cout << "TCG mode" << endl;

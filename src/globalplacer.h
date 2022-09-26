@@ -36,29 +36,31 @@ public:
         cout << "Die Num: " << m_DieVec.size() << endl;
         cout << "EMIB Num: " << m_EMIBNets.size() << endl;
         cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
+        m_ECG_extraction();
+        for(int i=0; i<m_ECGs.size(); ++i){
+            for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
+                cout << m_ECGs[i]->dieset[j]->code_name() << ",";
+            }
+            cout << endl;
+            SA* new_partialplacer = new SA();
+            new_partialplacer->InputData(m_ECGs[i]->TransformDieToTCG(), m_ECGs[i]->TransformEMIBToTCG(), m_ECGs[i]->MappingEMIBToDie(), "TCG");
+            PartialPlacers.push_back(new_partialplacer);
+        }
         OverallPlacer = new SA();
-        SA* new_partialplacer = new SA();
-        PartialPlacers.push_back(new_partialplacer);
         cout << "Initialization Finished" << endl;
-    }
-    GlobalPlacer(char* die_input, string net_input, int net_num){
-
-        SA* new_partialplacer = new SA();
-        PartialPlacers.push_back(new_partialplacer);
-        cout << "Initialization Finished" << endl;
-        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformECGToTCG(), m_MappingEMIBToDie(), "TCG");
     }
     SA* OverallPlacer;
     vector<SA*> PartialPlacers;
     void write_output(char* arg1, char* arg2, char* arg3);
     void set_random_seed(int t_seed){m_seed = t_seed;}
     void do_partial_placement(){
-        PartialPlacers[0]->InputData(m_TransformDieToBstar(), m_TransformECGToTCG(), m_MappingEMIBToDie(), "TCG");
-        vector<vector<float>> die_inf = PartialPlacers[0]->get_dies_inf();
-        for(int i=0; i<m_DieVec.size(); ++i){
-            m_DieVec[i]->set_x(die_inf[i][0]);
-            m_DieVec[i]->set_y(die_inf[i][1]);
-            m_DieVec[i]->set_r(die_inf[i][2]);
+        for(int i=0; i<m_ECGs.size(); ++i){
+            vector<vector<float>> die_inf = PartialPlacers[i]->get_dies_inf();
+            for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
+                m_ECGs[i]->dieset[j]->set_x(die_inf[i][0]);
+                m_ECGs[i]->dieset[j]->set_y(die_inf[i][1]);
+                m_ECGs[i]->dieset[j]->set_r(die_inf[i][2]);
+            }
         }
     }
     void do_overall_placement(){

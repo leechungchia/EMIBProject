@@ -601,7 +601,7 @@ bool Legalizer::Legalization(EMIBP* t_EMIBP){
     return 1;
 }
 
-void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<float, float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap){
+void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_EMIBVec, vector<pair<int, int>>& t_PinNodeMap){
     string node_name_h;
     string node_name_v;
     string pin_name;
@@ -617,13 +617,14 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<float,
         new_node_v->SetDualNode(new_node_h);
         m_die_map[i] = new_node_h;
     }
-    for(int i=0; i<t_PinVec.size(); ++i){
-        float overlap = t_PinVec[i].first;
-        float distance = t_PinVec[i].second;
+    for(int i=0; i<t_EMIBVec.size(); ++i){
+        float overlap = t_EMIBVec[i][0];
+        float distance = t_EMIBVec[i][1];
+        float occupied = t_EMIBVec[i][2];
         int   node_1 = t_PinNodeMap[i].first;
         int   node_2 = t_PinNodeMap[i].second;
         pin_name = "TCGEMIB_node" + to_string(t_PinNodeMap[i].first) + "_" + to_string(t_PinNodeMap[i].first);
-        EMIBInf inf(overlap, distance, node_1, node_2);
+        EMIBInf inf(node_1, node_2, overlap, distance, occupied);
         m_EMIBInfs.push_back(inf);
     }
 }
@@ -634,8 +635,8 @@ void TCG::Initialize(){
     m_VCG->Initialize(&m_VCGNodes, 0);
     m_HCG->EMIBNetDerive(&m_HCGNodes);
     m_VCG->EMIBNetDerive(&m_VCGNodes);
-    m_HCG->Overlap_Legalization();
-    m_VCG->Overlap_Legalization();
+    //m_HCG->Overlap_Legalization();
+    //m_VCG->Overlap_Legalization();
 }
 vector<float> TCG::get_dies_coor(int t_die_index){
     vector<float> die_inf;

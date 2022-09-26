@@ -75,14 +75,14 @@ class EMIB{
 
 class ECG{
     public:
-        ECG(vector<TCGNode*> t_dieset, vector<EMIB*> t_EMIBset): dieset(t_dieset), EMIBset(t_EMIBset){}
+        ECG(){}
         vector<pair<float, float>> TransformDieToTCG();
         vector<vector<float>>      TransformEMIBToTCG();
         vector<pair<int, int>>     MappingEMIBToDie();
-        vector<TCGNode*>   dieset;
+        vector<die*>   dieset;
         vector<EMIB*>  EMIBset;
     private:
-}
+};
 
 
 

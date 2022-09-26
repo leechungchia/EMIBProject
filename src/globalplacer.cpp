@@ -184,6 +184,7 @@ void GlobalPlacer::m_ECG_extraction(){
     int                   low;
     int                   high;
     int                   in;
+    int                   out;
     for(int i=0; i<m_EMIBNets.size(); ++i){
         die1_in = ECGset.size();
         die2_in = ECGset.size();
@@ -208,9 +209,9 @@ void GlobalPlacer::m_ECG_extraction(){
             if(die1_in != die2_in){
                 low = (die1_in < die2_in)?(die1_in):(die2_in);
                 high = (die1_in > die2_in)?(die1_in):(die2_in);
-                ECGset[low].push_back(ECGset[high].begin(), ECGset[high].end());
+                ECGset[low].insert(ECGset[low].end(), ECGset[high].begin(), ECGset[high].end());
                 ECGset.erase(ECGset.begin()+high);
-                EMIBset[low].push_back(EMIBset[high].begin(), EMIBset[high].end());
+                EMIBset[low].insert(EMIBset[low].end(), EMIBset[high].begin(), EMIBset[high].end());
                 EMIBset[low].push_back(m_EMIBNets[i]);
                 EMIBset.erase(EMIBset.begin()+high);
             }
@@ -225,11 +226,21 @@ void GlobalPlacer::m_ECG_extraction(){
             EMIBset.push_back(new_EMIBset);
         }
         else{
-            in = (die1_in == ECGset.size())?(die2_in);(die1_in);
-            out = (die1_in == ECGset.size())?(m_EMIBNets[i]->die_1);(m_EMIBNets[i]->die_2);
+            in = (die1_in == ECGset.size())?(die2_in):(die1_in);
+            out = (die1_in == ECGset.size())?(m_EMIBNets[i]->die_1):(m_EMIBNets[i]->die_2);
             ECGset[in].push_back(out);
             EMIBset[in].push_back(m_EMIBNets[i]);
         }
+    }
+    for(int i=0; i<ECGset.size(); ++i){
+        ECG* new_ecg = new ECG;
+        for(int j=0; j<ECGset[i].size(); ++j){
+            new_ecg->dieset.push_back(m_DieVec[ECGset[i][j]]);
+        }
+        for(int j=0; j<EMIBset[i].size(); ++j){
+            new_ecg->EMIBset.push_back(EMIBset[i][j]);
+        }
+        m_ECGs.push_back(new_ecg);
     }
 }
 

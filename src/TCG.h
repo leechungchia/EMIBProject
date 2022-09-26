@@ -210,7 +210,7 @@ class Legalizer{
 
     public:
 
-        Legalizer();
+        Legalizer(){};
         void FindIllegal(EMIBP* t_EMIBP, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet);
         void FindCritical(EMIBNet*& t_EMIBNet, TCGNode*& t_high, TCGNode*& t_low, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet);
         bool SetLegal(EMIBNet* t_EMIBNet);
@@ -233,9 +233,10 @@ class uf_node{
 
 class EMIBInf{
     public:
-        EMIBInf(float t_overlap, float t_distance, int t_node_1, int t_node_2):overlap(t_overlap), distance(t_distance), node_1(t_node_1), node_2(t_node_2){}
+        EMIBInf(int t_node_1, int t_node_2, float t_overlap, float t_distance, float t_occupied):overlap(t_overlap), distance(t_distance), node_1(t_node_1), node_2(t_node_2), occupied(t_occupied){}
         float overlap;
         float distance;
+        float occupied;
         int   node_1;
         int   node_2;
 };
@@ -276,7 +277,7 @@ class TCG{
             m_HCG = new TCGGraph("HCG");
             m_VCG = new TCGGraph("VCG");
         }
-        void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<pair<float, float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
+        void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void Initialize();
         vector<float> get_dies_coor(int t_die_index);
 

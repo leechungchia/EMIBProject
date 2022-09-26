@@ -9,8 +9,9 @@ using namespace std;
 int main(int argc,char* argv[])
 {
     time_t start = time(0);
-    //GlobalPlacer placer(argv[1], "random", 15);
-    GlobalPlacer placer();
+    GlobalPlacer placer(argv[1], argv[2], "random", 0);
+    placer.do_partial_placement();
+    //placer.write_output(argv[2], argv[3], argv[4]);
     //placer.do_partial_placement();
     /*
     placer.OverallPlacer->set_bstar_parameter(0.3,0.4,0.3);
@@ -24,7 +25,6 @@ int main(int argc,char* argv[])
     cout << "Overall Placement Starts" << endl;
     placer.do_overall_placement();
     */
-    //placer.write_output(argv[2], argv[3], argv[4]);
     /*
     cout << "Overall Placement Ends" << endl;
     cout << "time: "<< difftime(time(0), start) << endl;

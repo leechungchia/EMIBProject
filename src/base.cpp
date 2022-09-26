@@ -8,7 +8,7 @@ vector<pair<float, float>> ECG::TransformDieToTCG(){
 }
 
 vector<vector<float>>  ECG::TransformEMIBToTCG(){
-    vector<pair<float, float>> inf;
+    vector<vector<float>> inf;
     for(int i=0; i<EMIBset.size(); ++i){
         vector<float> sub_inf;
         sub_inf.push_back(EMIBset[i]->overlap);
