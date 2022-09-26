@@ -29,10 +29,13 @@ class die: public rectangle{
     public:
         die(string t_code_name, float t_width, float t_height, int t_ID):rectangle(t_code_name, t_width, t_height), m_ID(t_ID){}
         vector<CommonPin*>* CommonPinVector(){return &m_commonpin_vec;};
-        int ID(){return m_ID;};
+        int  ID(){return m_ID;};
+        bool inECG(){return m_inECG;};
+        void SetInECG(bool t_in){m_inECG = t_in;}; 
     private:
         vector<CommonPin*> m_commonpin_vec;
         int                m_ID;
+        bool               m_inECG;
 };
 
 
@@ -61,12 +64,25 @@ private:
 
 class EMIB{
     public:
-        EMIB(die* t_die_1, die* t_die_2, float t_overlap, float t_distance):die_1(t_die_1), die_2(t_die_2), overlap(t_overlap), distance(t_distance){}  
-        die* die_1;
-        die* die_2;
+        EMIB(int t_die_1, int t_die_2, float t_overlap, float t_distance, float t_occupied):die_1(t_die_1), die_2(t_die_2), overlap(t_overlap), distance(t_distance), occupied(t_occupied){}  
+        int die_1;
+        int die_2;
         float overlap;
         float distance;
+        float occupied;
 };
+
+
+class ECG{
+    public:
+        ECG(vector<TCGNode*> t_dieset, vector<EMIB*> t_EMIBset): dieset(t_dieset), EMIBset(t_EMIBset){}
+        vector<pair<float, float>> TransformDieToTCG();
+        vector<vector<float>>      TransformEMIBToTCG();
+        vector<pair<int, int>>     MappingEMIBToDie();
+        vector<TCGNode*>   dieset;
+        vector<EMIB*>  EMIBset;
+    private:
+}
 
 
 

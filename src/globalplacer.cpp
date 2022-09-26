@@ -39,12 +39,14 @@ void GlobalPlacer::m_read_EMIB_input(char* arg)
     string die_2;
     float  overlap;
     float  distance;
+    float  occupied;
     while(data >> die_1)
     {
         data >> die_2;
         data >> overlap;
         data >> distance;
-        EMIB* temp = new EMIB(m_search_die(die_1), m_search_die(die_2), overlap, distance);
+        data >> occupied;
+        EMIB* temp = new EMIB(m_search_die(die_1), m_search_die(die_2), overlap, distance, occupied);
         m_EMIBNets.push_back(temp);
     }
 }
@@ -149,7 +151,7 @@ vector<pair<pair<float, float>, pair<float, float>>> GlobalPlacer::m_TransformCo
     return inf;
 }
 
-vector<pair<float, float>>  GlobalPlacer::m_TransformEMIBToTCG(){
+vector<pair<float, float>>  GlobalPlacer::m_TransformECGToTCG(){
     vector<pair<float, float>> inf;
     for(int i=0; i<m_EMIBNets.size(); ++i){
         inf.push_back(make_pair(m_EMIBNets[i]->overlap, m_EMIBNets[i]->distance));
@@ -165,11 +167,70 @@ vector<pair<int, int>> GlobalPlacer::m_MappingCommonPinToDie(){
 }
 
 vector<pair<int, int>> GlobalPlacer::m_MappingEMIBToDie(){
-    vector<pair<float, float>> inf;
+    vector<pair<int, int>> inf;
     for(int i=0; i<m_EMIBNets.size(); ++i){
         inf.push_back(make_pair(m_EMIBNets[i]->die_1, m_EMIBNets[i]->die_2));
     }
     return inf;
+}
+
+void GlobalPlacer::m_ECG_extraction(){
+    vector<vector<int>>   ECGset;
+    vector<vector<EMIB*>> EMIBset;
+    vector<int>::iterator die1_found;
+    vector<int>::iterator die2_found;
+    int                   die1_in;
+    int                   die2_in;
+    int                   low;
+    int                   high;
+    int                   in;
+    for(int i=0; i<m_EMIBNets.size(); ++i){
+        die1_in = ECGset.size();
+        die2_in = ECGset.size();
+        for(int j=0; j<ECGset.size(); ++j){
+            if(die1_in == ECGset.size()){
+                die1_found = find(ECGset[j].begin(), ECGset[j].end(), m_EMIBNets[i]->die_1);
+                if(die1_found != ECGset[j].end()){
+                    die1_in = j;
+                }
+            }
+            if(die2_in == ECGset.size()){
+                die2_found = find(ECGset[j].begin(), ECGset[j].end(), m_EMIBNets[i]->die_2);
+                if(die2_found != ECGset[j].end()){
+                    die2_in = j;
+                }
+            }
+            if(die1_in != ECGset.size() && die2_in != ECGset.size()){
+                break;
+            }
+        }
+        if(die1_in != ECGset.size() && die2_in != ECGset.size()){
+            if(die1_in != die2_in){
+                low = (die1_in < die2_in)?(die1_in):(die2_in);
+                high = (die1_in > die2_in)?(die1_in):(die2_in);
+                ECGset[low].push_back(ECGset[high].begin(), ECGset[high].end());
+                ECGset.erase(ECGset.begin()+high);
+                EMIBset[low].push_back(EMIBset[high].begin(), EMIBset[high].end());
+                EMIBset[low].push_back(m_EMIBNets[i]);
+                EMIBset.erase(EMIBset.begin()+high);
+            }
+        }
+        else if(die1_in == ECGset.size() && die2_in == ECGset.size()){
+            vector<int> new_set;
+            vector<EMIB*> new_EMIBset;
+            new_set.push_back(m_EMIBNets[i]->die_1);
+            new_set.push_back(m_EMIBNets[i]->die_2);
+            ECGset.push_back(new_set);
+            new_EMIBset.push_back(m_EMIBNets[i]);
+            EMIBset.push_back(new_EMIBset);
+        }
+        else{
+            in = (die1_in == ECGset.size())?(die2_in);(die1_in);
+            out = (die1_in == ECGset.size())?(m_EMIBNets[i]->die_1);(m_EMIBNets[i]->die_2);
+            ECGset[in].push_back(out);
+            EMIBset[in].push_back(m_EMIBNets[i]);
+        }
+    }
 }
 
 
