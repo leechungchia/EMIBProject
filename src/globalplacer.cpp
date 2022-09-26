@@ -16,7 +16,6 @@ void GlobalPlacer::m_read_die_input(char* arg)
         data >> h;
         die* temp = new die(name, w, h, m_DieVec.size());
         m_DieVec.push_back(temp);
-
     }
 }
 
@@ -33,15 +32,17 @@ void GlobalPlacer::m_read_EMIB_input(char* arg)
 	ifstream data(arg);
     if(!data)
     {
-        cout << "die input error" << endl;
+        cout << "EMIB input error" << endl;
     }
+    string name;
     string die_1;
     string die_2;
     float  overlap;
     float  distance;
     float  occupied;
-    while(data >> die_1)
+    while(data >> name)
     {
+        data >> die_1;
         data >> die_2;
         data >> overlap;
         data >> distance;
@@ -185,6 +186,8 @@ void GlobalPlacer::m_ECG_extraction(){
     int                   high;
     int                   in;
     int                   out;
+    int                   local_die1 = -1;
+    int                   local_die2 = -1;
     for(int i=0; i<m_EMIBNets.size(); ++i){
         die1_in = ECGset.size();
         die2_in = ECGset.size();
@@ -238,7 +241,23 @@ void GlobalPlacer::m_ECG_extraction(){
             new_ecg->dieset.push_back(m_DieVec[ECGset[i][j]]);
         }
         for(int j=0; j<EMIBset[i].size(); ++j){
-            new_ecg->EMIBset.push_back(EMIBset[i][j]);
+            for(int w=0; w<new_ecg->dieset.size(); ++w){
+                if(local_die1 == -1){
+                    if(m_DieVec[EMIBset[i][j]->die_1] == new_ecg->dieset[w]){
+                        local_die1 = w;
+                    }
+                }
+                if(local_die2 == -1){
+                    if(m_DieVec[EMIBset[i][j]->die_2] == new_ecg->dieset[w]){
+                        local_die2 = w;
+                    }
+                }
+                if(local_die1 != -1 && local_die2 != -1){
+                    EMIB* new_EMIB = new EMIB(local_die1, local_die2, EMIBset[i][j]->overlap, EMIBset[i][j]->distance, EMIBset[i][j]->occupied);
+                    new_ecg->EMIBset.push_back(new_EMIB);
+                    break;
+                }
+            }
         }
         m_ECGs.push_back(new_ecg);
     }

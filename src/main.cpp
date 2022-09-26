@@ -10,7 +10,7 @@ int main(int argc,char* argv[])
 {
     time_t start = time(0);
     GlobalPlacer placer(argv[1], argv[2], "random", 0);
-    placer.do_partial_placement();
+    //placer.do_partial_placement();
     //placer.write_output(argv[2], argv[3], argv[4]);
     //placer.do_partial_placement();
     /*

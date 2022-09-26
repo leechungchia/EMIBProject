@@ -33,7 +33,7 @@ class Legalizer;
 class TCGNode{
     public:
         TCGNode(string t_code_name, float t_weight):
-        m_code_name(t_code_name), m_initial_weight(t_weight), m_weight(t_weight), m_value(0), m_is_visited(1), m_depth(-1), m_visited_counter(0), m_rotated(0){}
+        m_code_name(t_code_name), m_initial_weight(t_weight), m_weight(t_weight), m_value(-1), m_is_visited(1), m_depth(-1), m_visited_counter(0), m_rotated(0){}
         void   ValueGenerate();
         bool   ValueUpdate(queue<TCGNode*>& t_nodes);
         bool   ValueUpdate();
@@ -62,6 +62,7 @@ class TCGNode{
         float          Distance(TCGNode* t_node);
         int            ID(){return m_ID;};
         int            EMIBCounter(){return m_EMIBCounter;};
+        int            TraverseCounter(){return m_visited_counter;};
         void           ResetEMIBCounter(){m_EMIBCounter = EMIBs.size();};
         void           decreaseEMIBCounter(int t_num){m_EMIBCounter-=t_num;};
         void           DecreaseCounter(){m_visited_counter -= 1;};
@@ -135,7 +136,7 @@ class EMIBP_comparator{
 
 class EMIBNet {
     public:
-        EMIBNet(string t_code_name, TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance):m_code_name(t_code_name), m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap), m_is_visited(0){}
+        EMIBNet(string t_code_name, TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance, float t_occupied):m_code_name(t_code_name), m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap),m_occupied(t_occupied), m_is_visited(0){}
         bool isOverlapValid(float& t_overlap);
         bool isDistanceValid();
         bool Legalize();
@@ -158,6 +159,7 @@ class EMIBNet {
     private:
         float    m_overlap;
         float    m_distance;
+        float    m_occupied;
         TCGNode* m_node_1;
         TCGNode* m_node_2;
         bool     m_is_visited;
@@ -254,6 +256,13 @@ class TCGGraph{
         bool state(){return (m_direction_type == "VCG")?1:0;};
         void SetEMIBInf(vector<EMIBInf>* t_inf){m_EMIBInf = t_inf;};
         void EMIBNetDerive(vector<TCGNode*>* t_TCGNodes);
+        int EMIBnum(){
+            int num = 0;
+            for(int i=0; i<m_Nets.size(); ++i){
+                num += m_Nets[i].size();
+            }
+            return num/2;
+        }
     private:
         void     m_CoorGenerate();
         bool     m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs);
@@ -294,17 +303,13 @@ class TCG{
 
 
 
-
-
-
-
-
-
-class uf_comparator{
-    public: 
-        bool operator()(uf_node* a, uf_node* b){return a->node < b->node; };
-};
 #endif
+
+
+
+
+
+
 
 
  

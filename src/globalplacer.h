@@ -31,17 +31,19 @@ public:
     GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num){
         m_seed = 30;
         m_read_die_input(die_input);
-        m_read_die_input(EMIB_input);
+        m_read_EMIB_input(EMIB_input);
         m_read_net_input(net_input, net_num);
         cout << "Die Num: " << m_DieVec.size() << endl;
         cout << "EMIB Num: " << m_EMIBNets.size() << endl;
         cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
         m_ECG_extraction();
         for(int i=0; i<m_ECGs.size(); ++i){
+            cout << "ECG" << i << ":";
             for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
                 cout << m_ECGs[i]->dieset[j]->code_name() << ",";
             }
             cout << endl;
+            cout << "ECG" << i << " EMIB num: " << m_ECGs[i]->EMIBset.size() << endl;
             SA* new_partialplacer = new SA();
             new_partialplacer->InputData(m_ECGs[i]->TransformDieToTCG(), m_ECGs[i]->TransformEMIBToTCG(), m_ECGs[i]->MappingEMIBToDie(), "TCG");
             PartialPlacers.push_back(new_partialplacer);
