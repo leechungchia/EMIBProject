@@ -61,7 +61,16 @@ void GlobalPlacer::m_read_net_input(string arg, int net_num)
     }
 }
 
-
+void GlobalPlacer::m_tree_node_generation(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<tree_net*>& t_treenets){
+    tree_node* node1;
+    tree_node* node2;
+    for(int i=0; i<t_EMIBs.size(); ++i){
+        node1 = t_dies[t_EMIBs[i]->die_1]->dual_treenode;
+        node2 = t_dies[t_EMIBs[i]->die_2]->dual_treenode;
+        tree_net* new_net = new tree_net(node1, node2);
+        t_treenets.push_back(new_net);
+    }
+}
 
 void GlobalPlacer::m_random_net_generate(int num)
 {
@@ -105,6 +114,72 @@ void GlobalPlacer::m_random_net_generate(int num)
     }
 }
 
+void GlobalPlacer::m_findroot(tree_node*& t_node, tree_node*& t_root){
+    tree_node* current_node;
+    current_node = t_node;
+    vector<tree_node*> updatenodes;
+    while(current_node->upper_node != 0){
+        updatenodes.push_back(current_node);
+        current_node = current_node->upper_node;
+    }
+    t_root = current_node;
+    for(int i=0; i<updatenodes.size(); ++i){
+        updatenodes[i]->upper_node = t_root;
+    }
+}
+
+
+bool GlobalPlacer::m_unioninsert(tree_net* t_net){
+    tree_node* node1;
+    tree_node* node2;
+    tree_node* root1;
+    tree_node* root2;
+    node1 = t_net->die1;
+    node2 = t_net->die2;
+    if(node1->inserted){
+        m_findroot(node1, root1);
+    }
+    if(node2->inserted){
+        m_findroot(node2, root2);
+    }
+    if(node1->inserted && node2->inserted){
+        if(root1 == root2){
+            return 0;
+        }
+        else{
+            root2->upper_node = root1;
+        }
+    }
+    else if(node1->inserted && !node2->inserted){
+        node2->upper_node = root1;
+        node2->inserted = true;
+    }
+    else if(!node2->inserted && !node1->inserted){
+        node1->upper_node = root2;
+        node1->inserted = true;
+    }
+    else{
+        node1->upper_node = 0;
+        node2->upper_node = node1;
+        node1->inserted = true;
+        node2->inserted = true;
+    }
+    return 1;
+}
+void GlobalPlacer::m_maximum_spanning_tree(int t_dienum, vector<tree_net*>& t_nets){
+    int net_num = 0;
+    int iterator = 0;
+    while(net_num < t_dienum-1){
+        if(m_unioninsert(t_nets[iterator])){
+            net_num++;
+        };
+        iterator++;
+    }
+}
+
+
+
+
 
 void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
     srand(m_initial_topology_seed);
@@ -122,6 +197,9 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
     die* root;
     set<die*>::iterator it_1;
     set<die*>::iterator it_2;
+    for(int i=0; i<t_ECGs->dieset.size(); ++i){
+        t_ECGs->dieset[i]->set_initial_index(i);
+    }
     int h_die_num = rand()/t_ECGs->dieset.size();
     int v_die_num = t_ECGs->dieset.size() - h_die_num;
     for(int i=0; i<t_ECGs->dieset.size(); ++i){

@@ -22,7 +22,7 @@ using namespace std;
 class rectangle{
     public:
         rectangle(string t_code_name, float t_width, float t_height):
-        m_code_name(t_code_name), m_width(t_width), m_height(t_height), m_rotated(0){};
+        m_code_name(t_code_name), m_width(t_width), m_height(t_height), m_rotated(0), m_backup(0){};
         rectangle(){}
         float h(){return m_height;};
         float w(){return m_width;};
@@ -60,6 +60,8 @@ class rectangle{
                 return m_ycoor+m_width;
             }
         }
+        void set_initial_index(int t_index){m_init_index = t_index;};
+        int  initial_index(){return m_init_index;};
         int  r(){return m_rotated;};
         string code_name(){return m_code_name;};
         void set_h(float t_height){m_height = t_height;};
@@ -69,6 +71,8 @@ class rectangle{
         void set_y(float t_ycoor){m_ycoor = t_ycoor;}
         void set_code_name(string t_code_name){m_code_name = t_code_name;};
         void set_r(int t_rotated){m_rotated = t_rotated;};
+        void set_backup(bool t_back){m_backup = t_back;};
+        bool backup(){return m_backup;};
     private:
         string m_code_name;
         float  m_width;
@@ -76,6 +80,8 @@ class rectangle{
         float  m_xcoor;
         float  m_ycoor;
         int    m_rotated;
+        int    m_init_index;
+        bool    m_backup;
 };
 
 class pin

@@ -27,6 +27,12 @@
 
 using namespace std;
 
+
+
+
+
+
+
 class GlobalPlacer{
 public:
     GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num){
@@ -84,8 +90,13 @@ private:
     void m_read_net_input(string arg, int net_num);
     void m_read_EMIB_input(char* arg);
     void m_random_net_generate(int num);
+    void m_tree_node_generation(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<tree_net*>& t_treenets);
+    void m_findroot(tree_node*& t_node, tree_node*& t_root);
+    bool m_unioninsert(tree_net* t_net);
     void m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<ECG*>&  t_ECGs);
     void m_initial_topology_generation();
+    void m_branch_connect(vector<tree_node*>& t_trees);
+    void m_maximum_spanning_tree(int t_dienum, vector<tree_net*>& t_nets);
     int  m_search_die(string t_name);
     vector<pair<float, float>> m_TransformDieToBstar();
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();
