@@ -79,6 +79,9 @@ public:
                 string t_structure){
             cout << "TCG mode" << endl;
             m_TCG = new TCG();
+            m_size = t_DieVec.size();
+            m_time_upperbound = m_k*t_DieVec.size();
+            m_structure = t_structure;
             m_TCG->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
             cout << "TCGNode Constructed successfully" << endl;
             m_TCG->Initialize();

@@ -105,6 +105,84 @@ void GlobalPlacer::m_random_net_generate(int num)
     }
 }
 
+
+void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
+    srand(m_initial_topology_seed);
+    set<die*> h_set;
+    set<die*> v_set;
+    vector<die*> h_vec;
+    vector<die*> v_vec;
+    vector<EMIB*> h_edge;
+    vector<EMIB*> v_edge;
+    vector<EMIB*> r_edge;
+    vector<ECG*>  h_ecg;
+    vector<ECG*>  v_ecg;
+    die* die_1;
+    die* die_2;
+    die* root;
+    set<die*>::iterator it_1;
+    set<die*>::iterator it_2;
+    int h_die_num = rand()/t_ECGs->dieset.size();
+    int v_die_num = t_ECGs->dieset.size() - h_die_num;
+    for(int i=0; i<t_ECGs->dieset.size(); ++i){
+        int h_in = rand()/2;
+        if(h_in == 0){
+            if(h_set.size() >= h_die_num){
+                v_set.insert(t_ECGs->dieset[i]);
+            }
+            else{
+                h_set.insert(t_ECGs->dieset[i]);
+            }
+        }
+        else{
+            if(v_set.size() >= v_die_num){
+                h_set.insert(t_ECGs->dieset[i]);
+            }
+            else{
+                v_set.insert(t_ECGs->dieset[i]);
+            }
+        }
+    }
+    for(int i=0; i<t_ECGs->EMIBset.size(); ++i){
+        die_1 = t_ECGs->dieset[t_ECGs->EMIBset[i]->die_1];
+        die_2 = t_ECGs->dieset[t_ECGs->EMIBset[i]->die_2];
+        it_1 = h_set.find(die_1);
+        it_2 = h_set.find(die_2);
+        if(it_1!=it_2){
+            r_edge.push_back(t_ECGs->EMIBset[i]);
+        }
+        else if(it_1 == h_set.end()){
+            v_edge.push_back(t_ECGs->EMIBset[i]);
+        }
+        else{
+            h_edge.push_back(t_ECGs->EMIBset[i]);
+        }
+    }
+    for(auto it=h_set.begin(); it!=h_set.end(); ++it){
+        h_vec.push_back((*it));   
+    }
+    for(auto it=v_set.begin(); it!=v_set.end(); ++it){
+        v_vec.push_back((*it));   
+    }
+    m_ECG_extraction(h_vec, h_edge, h_ecg);
+    m_ECG_extraction(v_vec, v_edge, v_ecg);
+    for(int i=0; i<h_ecg.size(); ++i){
+        continue;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 void GlobalPlacer::write_output(char* arg1, char* arg2, char* arg3)
 {
     ofstream bgraph;
@@ -175,7 +253,7 @@ vector<pair<int, int>> GlobalPlacer::m_MappingEMIBToDie(){
     return inf;
 }
 
-void GlobalPlacer::m_ECG_extraction(){
+void GlobalPlacer::m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<ECG*>&  t_ECGs){
     vector<vector<int>>   ECGset;
     vector<vector<EMIB*>> EMIBset;
     vector<int>::iterator die1_found;
@@ -188,18 +266,18 @@ void GlobalPlacer::m_ECG_extraction(){
     int                   out;
     int                   local_die1 = -1;
     int                   local_die2 = -1;
-    for(int i=0; i<m_EMIBNets.size(); ++i){
+    for(int i=0; i<t_EMIBs.size(); ++i){
         die1_in = ECGset.size();
         die2_in = ECGset.size();
         for(int j=0; j<ECGset.size(); ++j){
             if(die1_in == ECGset.size()){
-                die1_found = find(ECGset[j].begin(), ECGset[j].end(), m_EMIBNets[i]->die_1);
+                die1_found = find(ECGset[j].begin(), ECGset[j].end(), t_EMIBs[i]->die_1);
                 if(die1_found != ECGset[j].end()){
                     die1_in = j;
                 }
             }
             if(die2_in == ECGset.size()){
-                die2_found = find(ECGset[j].begin(), ECGset[j].end(), m_EMIBNets[i]->die_2);
+                die2_found = find(ECGset[j].begin(), ECGset[j].end(), m_EMIBs[i]->die_2);
                 if(die2_found != ECGset[j].end()){
                     die2_in = j;
                 }
@@ -215,40 +293,42 @@ void GlobalPlacer::m_ECG_extraction(){
                 ECGset[low].insert(ECGset[low].end(), ECGset[high].begin(), ECGset[high].end());
                 ECGset.erase(ECGset.begin()+high);
                 EMIBset[low].insert(EMIBset[low].end(), EMIBset[high].begin(), EMIBset[high].end());
-                EMIBset[low].push_back(m_EMIBNets[i]);
+                EMIBset[low].push_back(t_EMIBs[i]);
                 EMIBset.erase(EMIBset.begin()+high);
             }
         }
         else if(die1_in == ECGset.size() && die2_in == ECGset.size()){
             vector<int> new_set;
             vector<EMIB*> new_EMIBset;
-            new_set.push_back(m_EMIBNets[i]->die_1);
-            new_set.push_back(m_EMIBNets[i]->die_2);
+            new_set.push_back(t_EMIBs[i]->die_1);
+            new_set.push_back(t_EMIBs[i]->die_2);
             ECGset.push_back(new_set);
-            new_EMIBset.push_back(m_EMIBNets[i]);
+            new_EMIBset.push_back(t_EMIBs[i]);
             EMIBset.push_back(new_EMIBset);
         }
         else{
             in = (die1_in == ECGset.size())?(die2_in):(die1_in);
-            out = (die1_in == ECGset.size())?(m_EMIBNets[i]->die_1):(m_EMIBNets[i]->die_2);
+            out = (die1_in == ECGset.size())?(t_EMIBs[i]->die_1):(t_EMIBs[i]->die_2);
             ECGset[in].push_back(out);
-            EMIBset[in].push_back(m_EMIBNets[i]);
+            EMIBset[in].push_back(t_EMIBs[i]);
         }
     }
     for(int i=0; i<ECGset.size(); ++i){
         ECG* new_ecg = new ECG;
         for(int j=0; j<ECGset[i].size(); ++j){
-            new_ecg->dieset.push_back(m_DieVec[ECGset[i][j]]);
+            new_ecg->dieset.push_back(t_dies[ECGset[i][j]]);
         }
         for(int j=0; j<EMIBset[i].size(); ++j){
+            local_die1 = -1;
+            local_die2 = -1;
             for(int w=0; w<new_ecg->dieset.size(); ++w){
                 if(local_die1 == -1){
-                    if(m_DieVec[EMIBset[i][j]->die_1] == new_ecg->dieset[w]){
+                    if(t_dies[EMIBset[i][j]->die_1] == new_ecg->dieset[w]){
                         local_die1 = w;
                     }
                 }
                 if(local_die2 == -1){
-                    if(m_DieVec[EMIBset[i][j]->die_2] == new_ecg->dieset[w]){
+                    if(t_dies[EMIBset[i][j]->die_2] == new_ecg->dieset[w]){
                         local_die2 = w;
                     }
                 }
@@ -259,7 +339,7 @@ void GlobalPlacer::m_ECG_extraction(){
                 }
             }
         }
-        m_ECGs.push_back(new_ecg);
+        t_ECGs.push_back(new_ecg);
     }
 }
 

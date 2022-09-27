@@ -18,6 +18,7 @@
 #include <random>
 #include <cfloat>
 #include <iterator>
+#include <cstdlib>
 #include "base.h"
 #include "bstar.h"
 #include "sa.h"
@@ -30,13 +31,14 @@ class GlobalPlacer{
 public:
     GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num){
         m_seed = 30;
+        m_initial_topology_seed = 30;
         m_read_die_input(die_input);
         m_read_EMIB_input(EMIB_input);
         m_read_net_input(net_input, net_num);
         cout << "Die Num: " << m_DieVec.size() << endl;
         cout << "EMIB Num: " << m_EMIBNets.size() << endl;
         cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
-        m_ECG_extraction();
+        m_ECG_extraction(m_DieVec, m_EMIBNets, m_ECGs);
         for(int i=0; i<m_ECGs.size(); ++i){
             cout << "ECG" << i << ":";
             for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
@@ -58,10 +60,11 @@ public:
     void do_partial_placement(){
         for(int i=0; i<m_ECGs.size(); ++i){
             vector<vector<float>> die_inf = PartialPlacers[i]->get_dies_inf();
+            cout << "updated die num: " << die_inf.size() << endl;
             for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
-                m_ECGs[i]->dieset[j]->set_x(die_inf[i][0]);
-                m_ECGs[i]->dieset[j]->set_y(die_inf[i][1]);
-                m_ECGs[i]->dieset[j]->set_r(die_inf[i][2]);
+                m_ECGs[i]->dieset[j]->set_x(die_inf[j][0]);
+                m_ECGs[i]->dieset[j]->set_y(die_inf[j][1]);
+                m_ECGs[i]->dieset[j]->set_r(die_inf[j][2]);
             }
         }
     }
@@ -81,7 +84,8 @@ private:
     void m_read_net_input(string arg, int net_num);
     void m_read_EMIB_input(char* arg);
     void m_random_net_generate(int num);
-    void m_ECG_extraction();
+    void m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<ECG*>&  t_ECGs);
+    void m_initial_topology_generation();
     int  m_search_die(string t_name);
     vector<pair<float, float>> m_TransformDieToBstar();
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();
@@ -93,6 +97,7 @@ private:
     vector<EMIB*> m_EMIBNets;
     vector<ECG*>  m_ECGs;
     int           m_seed;
+    int           m_initial_topology_seed;
 };
 
 #endif

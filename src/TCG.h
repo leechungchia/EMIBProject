@@ -301,7 +301,10 @@ class TCG{
         vector<EMIBInf>     m_EMIBInfs;
 };
 
-
+class uf_comparator{
+    public:
+        bool operator()(uf_node* a, uf_node* b){return a->node < b->node;}
+};
 
 #endif
 
