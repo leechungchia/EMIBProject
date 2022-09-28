@@ -129,7 +129,7 @@ void GlobalPlacer::m_findroot(tree_node*& t_node, tree_node*& t_root){
 }
 
 
-bool GlobalPlacer::m_unioninsert(tree_net* t_net){
+bool GlobalPlacer::m_unioninsert(tree_net* t_net, vector<vector<die*>>& t_dietrees){
     tree_node* node1;
     tree_node* node2;
     tree_node* root1;
@@ -164,20 +164,55 @@ bool GlobalPlacer::m_unioninsert(tree_net* t_net){
         node1->inserted = true;
         node2->inserted = true;
     }
+    t_dietrees[node1->dual_die->initial_index()].push_back(node2->dual_die);
+    t_dietrees[node2->dual_die->initial_index()].push_back(node1->dual_die);
     return 1;
 }
-void GlobalPlacer::m_maximum_spanning_tree(int t_dienum, vector<tree_net*>& t_nets){
+void GlobalPlacer::m_maximum_spanning_tree(vector<die*>& t_dies, vector<EMIB*>& t_nets, MST_node* t_root){
+    vector<tree_net*> treenets;
+    for(int i=0; i<t_nets.begin(); ++i){
+        tree_net* new_net = new tree_net(t_dies[t_nets[i]->die_1], t_dies[t_nets[i]->die_2]);
+        treenets.push_back(treenets);
+    }
+    vector<vector<die*>> MSTtrees;
+    srand(m_initial_topology_seed);
     int net_num = 0;
     int iterator = 0;
-    while(net_num < t_dienum-1){
-        if(m_unioninsert(t_nets[iterator])){
+    while(net_num < t_dies.size()-1){
+        if(m_unioninsert(treenets[iterator], MSTtrees)){
             net_num++;
         };
         iterator++;
     }
+    queue<MST_node*> MSTnodes;
+    MST_node* root = t_dies[rand()/t_dies.size()]->dual_MSTnode;
+    MST_node* current_node;
+    MST_node* bottom_node;
+    MSTnodes.push(root);
+    while(MSTnodes.size() > 0){
+        current_node = MSTnodes.front();
+        MSTnodes.pop();
+        current_node->visited = true;
+        for(int i=0; i<MSTtrees[root->dual_die->initial_index()].size(); ++i){
+            bottom_node = MSTtrees[root->dual_die->initial_index()][i]->dual_MSTnode;
+            if(!bottom_node->visited){
+                MSTnodes.push(bottom_node);
+                current_node->bottom_nodes.push_back(bottom_node);
+            }
+        }
+    }
 }
 
-
+void GlobalPlacer::m_reduction_assignment(MST_node* t_root, vector<MST_node*> t_aboveroots,vector<pair<int, int>>& t_edges){
+    for(int i=0; i<t_root->bottom_nodes.size(); ++i){
+        vector<MST_node*> aboveroots(t_aboveroots);
+        aboveroots.push_back(t_root);
+        for(int j=0; j<aboveroots.size(); ++j){
+            t_edges.push_back(aboveroots[j]->dual_die->initial_index(), aboveroots[j]->bottom_nodes[i].dual_die->initial_index());
+        }
+        m_reduction_assignment(t_root->bottom_nodes[i], aboveroots, t_edges);
+    }
+}
 
 
 

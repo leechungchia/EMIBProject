@@ -34,6 +34,14 @@ class tree_node{
         bool               inserted; 
 };
 
+class MST_node{
+    public:
+        MST_node(die* t_die):dual_die(t_die), visited(false){};
+        vector<MST_node>   bottom_nodes;
+        die*               dual_die;
+        bool               visited; 
+};
+
 class tree_net{
     public:
         tree_net(tree_node* t_node1, tree_node* t_node2):die1(t_node1), die2(t_node2){}
@@ -46,12 +54,21 @@ class die: public rectangle{
     public:
         die(string t_code_name, float t_width, float t_height, int t_ID):rectangle(t_code_name, t_width, t_height), m_ID(t_ID){
             dual_treenode = new tree_node(this);
+            dual_MSTnode = new MST_node(this);
         }
         vector<CommonPin*>* CommonPinVector(){return &m_commonpin_vec;};
         int  ID(){return m_ID;};
         bool inECG(){return m_inECG;};
         void SetInECG(bool t_in){m_inECG = t_in;};
+        void Reset(){
+            dual_treenode->inserted = false;
+            dual_treenode->upper_node = 0;
+            dual_MSTnode->bottom_nodes.clear();
+            dual_MSTnode->visited = false;
+            set_initial_index(-1);
+        };
         tree_node*         dual_treenode;
+        MST_node*          dual_MSTnode;
 
     private:
         vector<CommonPin*> m_commonpin_vec;

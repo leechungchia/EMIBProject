@@ -92,11 +92,13 @@ private:
     void m_random_net_generate(int num);
     void m_tree_node_generation(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<tree_net*>& t_treenets);
     void m_findroot(tree_node*& t_node, tree_node*& t_root);
-    bool m_unioninsert(tree_net* t_net);
+    bool m_unioninsert(tree_net* t_net, vector<vector<die*>>& t_dietrees);
     void m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<ECG*>&  t_ECGs);
     void m_initial_topology_generation();
     void m_branch_connect(vector<tree_node*>& t_trees);
-    void m_maximum_spanning_tree(int t_dienum, vector<tree_net*>& t_nets);
+    void m_maximum_spanning_tree(int t_dienum, vector<tree_net*>& t_nets, MST_node* t_root);
+    void m_reduction_assignment(MST_node* t_root, vector<pair<int, int>>& t_edges);
+    void m_
     int  m_search_die(string t_name);
     vector<pair<float, float>> m_TransformDieToBstar();
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();
