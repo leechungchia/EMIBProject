@@ -76,6 +76,8 @@ public:
     void InputData(vector<pair<float, float>> t_DieVec, 
                 vector<vector<float>> t_EMIBNetVec, 
                 vector<pair<int, int>> t_MappingEMIBToDie,
+                vector<vector<int>> t_h_edges,
+                vector<vector<int>> t_v_edges,
                 string t_structure){
             cout << "TCG mode" << endl;
             m_TCG = new TCG();
@@ -83,6 +85,7 @@ public:
             m_time_upperbound = m_k*t_DieVec.size();
             m_structure = t_structure;
             m_TCG->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
+            m_TCG->GetTCGEdge(t_h_edges, t_v_edges);
             cout << "TCGNode Constructed successfully" << endl;
             m_TCG->Initialize();
             cout << "TCG Initialization successfully" << endl;

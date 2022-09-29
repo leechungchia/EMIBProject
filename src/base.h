@@ -28,7 +28,7 @@ class tree_net;
 
 class tree_node{
     public:
-        tree_node(die* t_die):dual_die(t_die), inserted(false){};
+        tree_node(die* t_die):dual_die(t_die), inserted(false), upper_node(0){};
         tree_node*         upper_node;
         die*               dual_die;
         bool               inserted; 
@@ -37,7 +37,7 @@ class tree_node{
 class MST_node{
     public:
         MST_node(die* t_die):dual_die(t_die), visited(false){};
-        vector<MST_node>   bottom_nodes;
+        vector<MST_node*>  bottom_nodes;
         die*               dual_die;
         bool               visited; 
 };
@@ -55,6 +55,7 @@ class die: public rectangle{
         die(string t_code_name, float t_width, float t_height, int t_ID):rectangle(t_code_name, t_width, t_height), m_ID(t_ID){
             dual_treenode = new tree_node(this);
             dual_MSTnode = new MST_node(this);
+            Reset();
         }
         vector<CommonPin*>* CommonPinVector(){return &m_commonpin_vec;};
         int  ID(){return m_ID;};
@@ -119,6 +120,8 @@ class ECG{
         vector<pair<int, int>>     MappingEMIBToDie();
         vector<die*>   dieset;
         vector<EMIB*>  EMIBset;
+        vector<vector<int>>      h_edges;
+        vector<vector<int>>      v_edges;
     private:
 };
 

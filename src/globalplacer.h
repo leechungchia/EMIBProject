@@ -51,9 +51,13 @@ public:
                 cout << m_ECGs[i]->dieset[j]->code_name() << ",";
             }
             cout << endl;
+            m_initial_topology_generation(m_ECGs[i]);
+            cout << "ECG " << i << " HCG edge num:" << m_ECGs[i]->h_edges.size() << endl;
+            cout << "ECG " << i << " VCG edge num:" << m_ECGs[i]->v_edges.size() << endl;
+            cout << endl;
             cout << "ECG" << i << " EMIB num: " << m_ECGs[i]->EMIBset.size() << endl;
             SA* new_partialplacer = new SA();
-            new_partialplacer->InputData(m_ECGs[i]->TransformDieToTCG(), m_ECGs[i]->TransformEMIBToTCG(), m_ECGs[i]->MappingEMIBToDie(), "TCG");
+            new_partialplacer->InputData(m_ECGs[i]->TransformDieToTCG(), m_ECGs[i]->TransformEMIBToTCG(), m_ECGs[i]->MappingEMIBToDie(), m_ECGs[i]->h_edges, m_ECGs[i]->v_edges, "TCG");
             PartialPlacers.push_back(new_partialplacer);
         }
         OverallPlacer = new SA();
@@ -94,11 +98,12 @@ private:
     void m_findroot(tree_node*& t_node, tree_node*& t_root);
     bool m_unioninsert(tree_net* t_net, vector<vector<die*>>& t_dietrees);
     void m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<ECG*>&  t_ECGs);
-    void m_initial_topology_generation();
+    void m_initial_topology_generation(ECG* t_ECGs);
     void m_branch_connect(vector<tree_node*>& t_trees);
-    void m_maximum_spanning_tree(int t_dienum, vector<tree_net*>& t_nets, MST_node* t_root);
-    void m_reduction_assignment(MST_node* t_root, vector<pair<int, int>>& t_edges);
-    void m_
+    void m_maximum_spanning_tree(vector<die*>& t_dies, vector<EMIB*>& t_nets, MST_node* t_root);
+    void m_reduction_assignment(MST_node* t_root, vector<MST_node*> t_aboveroots,vector<vector<int>>& t_edges);
+    void m_random_assignment(MST_node* t_root , vector<MST_node*>& t_bottom, vector<vector<int>>& t_edges);
+    void m_graph_connection(MST_node* t_root1, MST_node* t_root2, vector<vector<int>>& t_h_edges, vector<vector<int>>& t_v_edges);
     int  m_search_die(string t_name);
     vector<pair<float, float>> m_TransformDieToBstar();
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();

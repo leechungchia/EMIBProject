@@ -1,5 +1,5 @@
 CC=g++ 
-LDFLAGS=-std=c++11 -O3
+LDFLAGS=-std=c++11 -g
 HEADER=src/object.h src/base.h src/bstar.h src/horizontal_contour.h src/globalplacer.h src/sa.h src/TCG.h
 SOURCES=src/main.cpp $(HEADER:.h=.cpp)
 OBJECTS=$(SOURCES:.c=.o)

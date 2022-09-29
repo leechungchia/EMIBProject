@@ -74,6 +74,7 @@ class TCGNode{
         vector<EMIBP*> EMIBPs;
         vector<EMIBNet*> EMIBs;
     private:
+        bool             m_above_exist(TCGNode* t_node); 
         string           m_code_name;
         /// TCG Inf ///        
         set<TCGNode*>    m_UpperNodes;
@@ -256,6 +257,8 @@ class TCGGraph{
         bool state(){return (m_direction_type == "VCG")?1:0;};
         void SetEMIBInf(vector<EMIBInf>* t_inf){m_EMIBInf = t_inf;};
         void EMIBNetDerive(vector<TCGNode*>* t_TCGNodes);
+        void ConstraintEdgeAdd(vector<vector<int>>& t_edges);
+        void DirectEdgeAdd();
         int EMIBnum(){
             int num = 0;
             for(int i=0; i<m_Nets.size(); ++i){
@@ -263,6 +266,7 @@ class TCGGraph{
             }
             return num/2;
         }
+        void set_TCGNodes(vector<TCGNode*>* t_TCG){m_TCGNodes = t_TCG;};
     private:
         void     m_CoorGenerate();
         bool     m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs);
@@ -273,6 +277,7 @@ class TCGGraph{
         EMIBP*   m_EMIBPSource;
         TCGNode* m_source;
         TCGNode* m_target;
+        vector<TCGNode*>*        m_TCGNodes;
         vector<vector<EMIBNet*>> m_Nets;
         string   m_direction_type;
         vector<EMIBP*> m_EMIBPvec;
@@ -287,6 +292,7 @@ class TCG{
             m_VCG = new TCGGraph("VCG");
         }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
+        void GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edges);
         void Initialize();
         vector<float> get_dies_coor(int t_die_index);
 
