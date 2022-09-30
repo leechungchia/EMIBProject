@@ -258,6 +258,7 @@ class TCGGraph{
         void SetEMIBInf(vector<EMIBInf>* t_inf){m_EMIBInf = t_inf;};
         void EMIBNetDerive(vector<TCGNode*>* t_TCGNodes);
         void ConstraintEdgeAdd(vector<vector<int>>& t_edges);
+        void OriginalTraverse();
         void DirectEdgeAdd();
         int EMIBnum(){
             int num = 0;
@@ -293,7 +294,7 @@ class TCG{
         }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edges);
-        void Initialize();
+        void test_Legalization();
         vector<float> get_dies_coor(int t_die_index);
 
     private:

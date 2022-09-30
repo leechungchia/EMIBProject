@@ -151,7 +151,22 @@ bool EMIBNet::isDistanceValid(){
     return (m_node_1->Distance(m_node_2) <= m_distance);
 }
 
-
+void TCGGraph::OriginalTraverse(){
+    queue<TCGNode*>            traverseQueue;
+    TCGNode*                   current_node;
+    traverseQueue.push(m_source);
+    while(traverseQueue.size() != 0){
+        current_node = traverseQueue.front();
+        traverseQueue.pop();
+        current_node->SetVisited();
+        for(auto it = current_node->DirectUpperNodes()->begin(); it!=current_node->DirectUpperNodes()->end(); ++it){
+            if((*it)->finished()){
+                (*it)->ValueGenerate();
+                traverseQueue.push((*it));
+            }
+        }
+    }
+}
 bool TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs){
     queue<TCGNode*>            traverseQueue;
     vector<vector<EMIBNet*>>   EMIBNets;
@@ -163,16 +178,15 @@ bool TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EM
     while(traverseQueue.size() != 0){
         current_node = traverseQueue.front();
         traverseQueue.pop();
-        if(current_node->finished()){
-            current_node->ValueGenerate();
-        }
         if(current_node->EMIBCounter() > 0){
             newToppestNodes.insert(current_node);
         }
         else{
             current_node->SetVisited();
             for(auto it = current_node->DirectUpperNodes()->begin(); it!=current_node->DirectUpperNodes()->end(); ++it){
-                if((*it)->finished()){
+                if((*it)->finished() && !(*it)->is_parsed()){
+                    (*it)->ValueGenerate();
+                    (*it)->setParsed(true);
                     traverseQueue.push((*it));
                 }
             }
@@ -360,20 +374,7 @@ void  TCGGraph::m_unionfind(vector<TCGNode*>& t_nodes, vector<vector<EMIBNet*>>&
         delete (*it);
     }
 }
-void TCGGraph::m_CoorGenerate(){
-}
-void TCGGraph::Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated){
-    m_source->BottomNodes()->clear();
-    m_source->UpperNodes()->clear();
-    m_target->BottomNodes()->clear();
-    m_target->UpperNodes()->clear();
-    m_TCGNodes = t_TCGNodes;
-    for(int i=0; i<t_TCGNodes->size(); ++i){
-        t_TCGNodes->at(i)->ResetCounter();
-    }
-    m_source->ResetCounter();
-    m_target->ResetCounter();
-}
+
 void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
     m_Nets.clear();
     TCGNode* node_1;
@@ -409,6 +410,17 @@ void TCGGraph::ConstraintEdgeAdd(vector<vector<int>>& t_edges){
         m_TCGNodes->at(t_edges[i][0])->UpperInsert(m_TCGNodes->at(t_edges[i][1]));
         m_TCGNodes->at(t_edges[i][1])->BottomInsert(m_TCGNodes->at(t_edges[i][0]));
     }
+    for(int i=0; i<m_TCGNodes->size(); ++i){
+        m_source->UpperInsert(m_TCGNodes->at(i));
+        m_target->BottomInsert(m_TCGNodes->at(i));
+        m_TCGNodes->at(i)->BottomInsert(m_source);
+        m_TCGNodes->at(i)->UpperInsert(m_target);
+    }
+    for(int i=0; i<m_TCGNodes->size(); ++i){
+        m_TCGNodes->at(i)->ResetCounter();
+    }
+    m_source->ResetCounter();
+    m_target->ResetCounter();
 }
 
 void TCGGraph::DirectEdgeAdd(){
@@ -654,6 +666,18 @@ void TCG::GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edge
     m_HCG->DirectEdgeAdd();
     m_VCG->ConstraintEdgeAdd(t_v_edges);
     m_VCG->DirectEdgeAdd();
+    m_HCG->EMIBNetDerive(&m_HCGNodes);
+    m_VCG->EMIBNetDerive(&m_VCGNodes);
+    for(int i=0; i<m_HCGNodes.size(); ++i){
+        m_HCGNodes[i]->SoftInitialize();
+    }
+    for(int i=0; i<m_VCGNodes.size(); ++i){
+        m_VCGNodes[i]->SoftInitialize();
+    }
+
+    cout << "HCG EMIB num: "<< m_HCG->EMIBnum() << endl;
+    cout << "VCG EMIB num: "<< m_VCG->EMIBnum() << endl;
+    cout << "Classify EMIB net successfully" << endl;
 }
 void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_EMIBVec, vector<pair<int, int>>& t_PinNodeMap){
     string node_name_h;
@@ -687,32 +711,29 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<floa
     cout << "TCG total EMIB num: "  << m_EMIBInfs.size() << endl;
     m_HCG->set_TCGNodes(&m_HCGNodes);
     m_VCG->set_TCGNodes(&m_VCGNodes);
-}
-void TCG::Initialize(){
+    m_HCG->SetEMIBInf(&m_EMIBInfs);
+    m_VCG->SetEMIBInf(&m_EMIBInfs);
     for(int i=0; i<m_HCGNodes.size(); ++i){
         m_HCGNodes[i]->HardInitialize();
     }
     for(int i=0; i<m_VCGNodes.size(); ++i){
         m_VCGNodes[i]->HardInitialize();
     }
-    m_HCG->SetEMIBInf(&m_EMIBInfs);
-    m_VCG->SetEMIBInf(&m_EMIBInfs);
     cout << "Read TCG EMIB Inf" << endl;
-    m_HCG->EMIBNetDerive(&m_HCGNodes);
-    m_VCG->EMIBNetDerive(&m_VCGNodes);
+}
+void TCG::test_Legalization(){
+    m_HCG->OriginalTraverse();
+    m_VCG->OriginalTraverse();
+    //string h_success = (m_HCG->Overlap_Legalization())?("success"):("false");
+    //string v_success = (m_VCG->Overlap_Legalization())?("success"):("false");
+    //cout << "HCG Legalization: " << h_success << endl;
+    //cout << "VCG Legalization: " << v_success << endl;
     for(int i=0; i<m_HCGNodes.size(); ++i){
         m_HCGNodes[i]->SoftInitialize();
     }
     for(int i=0; i<m_VCGNodes.size(); ++i){
         m_VCGNodes[i]->SoftInitialize();
     }
-    cout << "HCG EMIB num: "<< m_HCG->EMIBnum() << endl;
-    cout << "VCG EMIB num: "<< m_VCG->EMIBnum() << endl;
-    cout << "Classify EMIB net successfully" << endl;
-    //string h_success = (m_HCG->Overlap_Legalization())?("success"):("false");
-    //string v_success = (m_VCG->Overlap_Legalization())?("success"):("false");
-    //cout << "HCG Legalization: " << h_success << endl;
-    //cout << "VCG Legalization: " << v_success << endl;
 }
 vector<float> TCG::get_dies_coor(int t_die_index){
     vector<float> die_inf;

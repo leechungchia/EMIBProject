@@ -18,7 +18,7 @@ for i in range(len(net)):
 #for i in range(len(emib)):
 	#emib[i] = emib[i].split(" ")
 fig,ax = plt.subplots()
-plt.axis([0,12,0,12])
+plt.axis([0,120,0,120])
 del data[-1]
 del net[-1]
 #del emib[-1]

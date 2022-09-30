@@ -86,9 +86,8 @@ public:
             m_structure = t_structure;
             m_TCG->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
             m_TCG->GetTCGEdge(t_h_edges, t_v_edges);
+            m_TCG->test_Legalization();
             cout << "TCGNode Constructed successfully" << endl;
-            m_TCG->Initialize();
-            cout << "TCG Initialization successfully" << endl;
     }
     void  set_random_seed(int t_seed);
     void  set_profile_parameter(float t_bound_arg, float t_area_arg, float t_hpwl_arg);

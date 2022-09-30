@@ -67,6 +67,7 @@ class die: public rectangle{
             dual_MSTnode->bottom_nodes.clear();
             dual_MSTnode->visited = false;
             set_initial_index(-1);
+            set_backup(0);
         };
         tree_node*         dual_treenode;
         MST_node*          dual_MSTnode;

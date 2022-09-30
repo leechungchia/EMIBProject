@@ -35,20 +35,40 @@ using namespace std;
 
 class GlobalPlacer{
 public:
-    GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num){
+    GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num, string mode){
         m_seed = 30;
-        m_initial_topology_seed = 30;
-        m_read_die_input(die_input);
-        m_read_EMIB_input(EMIB_input);
-        m_read_net_input(net_input, net_num);
+        m_initial_topology_seed = 31;
+        if(mode == "normal"){
+            m_read_die_input(die_input);
+            m_read_EMIB_input(EMIB_input);
+            m_read_net_input(net_input, net_num);
+        }
+        else if(mode == "test"){
+            m_random_die_generate(6, make_pair(6,12), make_pair(6,12));
+            m_random_EMIB_generate(10, make_pair(1,2), make_pair(1,1), make_pair(1,1));
+        }
         cout << "Die Num: " << m_DieVec.size() << endl;
         cout << "EMIB Num: " << m_EMIBNets.size() << endl;
         cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
+        for(int i=0; i<m_EMIBNets.size(); ++i){
+            cout << m_EMIBNets[i]->die_1 << "<--vffvfvf->" << m_EMIBNets[i]->die_2 << endl; 
+        }
         m_ECG_extraction(m_DieVec, m_EMIBNets, m_ECGs);
+        for(auto it=m_ECGs.begin(); it!=m_ECGs.end();){
+            cout << " cdcdcdc " << (*it)->EMIBset.size() << endl;
+            if((*it)->dieset.size() == 1){
+                m_NormalDieVec.push_back((*it)->dieset[0]);
+                it = m_ECGs.erase(it);
+            }
+            else{
+                ++it;
+            }
+        }
         for(int i=0; i<m_ECGs.size(); ++i){
             cout << "ECG" << i << ":";
             for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
                 cout << m_ECGs[i]->dieset[j]->code_name() << ",";
+                m_ECGs[i]->dieset[j]->set_initial_index2(j);
             }
             cout << endl;
             m_initial_topology_generation(m_ECGs[i]);
@@ -94,13 +114,15 @@ private:
     void m_read_net_input(string arg, int net_num);
     void m_read_EMIB_input(char* arg);
     void m_random_net_generate(int num);
+    void m_random_die_generate(int t_num, pair<int, int> t_width_range, pair<int, int> t_height_range);
+    void m_random_EMIB_generate(int t_num, pair<int, int> t_overlap_range, pair<int, int> t_distance_range, pair<int, int> t_occupied_range);
     void m_tree_node_generation(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<tree_net*>& t_treenets);
     void m_findroot(tree_node*& t_node, tree_node*& t_root);
     bool m_unioninsert(tree_net* t_net, vector<vector<die*>>& t_dietrees);
     void m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs, vector<ECG*>&  t_ECGs);
     void m_initial_topology_generation(ECG* t_ECGs);
     void m_branch_connect(vector<tree_node*>& t_trees);
-    void m_maximum_spanning_tree(vector<die*>& t_dies, vector<EMIB*>& t_nets, MST_node* t_root);
+    void m_maximum_spanning_tree(vector<die*>& t_dies, vector<EMIB*>& t_nets, MST_node*& t_root);
     void m_reduction_assignment(MST_node* t_root, vector<MST_node*> t_aboveroots,vector<vector<int>>& t_edges);
     void m_random_assignment(MST_node* t_root , vector<MST_node*>& t_bottom, vector<vector<int>>& t_edges);
     void m_graph_connection(MST_node* t_root1, MST_node* t_root2, vector<vector<int>>& t_h_edges, vector<vector<int>>& t_v_edges);
@@ -111,6 +133,7 @@ private:
     vector<pair<int, int>> m_MappingCommonPinToDie();
     vector<pair<int, int>> m_MappingEMIBToDie();
     vector<die*>  m_DieVec;
+    vector<die*>  m_NormalDieVec;
     vector<pair<CommonPin*, CommonPin*>> m_CommonNetVec;
     vector<EMIB*> m_EMIBNets;
     vector<ECG*>  m_ECGs;

@@ -62,6 +62,8 @@ class rectangle{
         }
         void set_initial_index(int t_index){m_init_index = t_index;};
         int  initial_index(){return m_init_index;};
+        void set_initial_index2(int t_index){m_init_index_2 = t_index;};
+        int  initial_index2(){return m_init_index_2;};
         int  r(){return m_rotated;};
         string code_name(){return m_code_name;};
         void set_h(float t_height){m_height = t_height;};
@@ -81,6 +83,7 @@ class rectangle{
         float  m_ycoor;
         int    m_rotated;
         int    m_init_index;
+        int    m_init_index_2;
         bool    m_backup;
 };
 
