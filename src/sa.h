@@ -38,7 +38,6 @@ public:
     m_y_bound   = FLT_MAX;
     //// SA parameter ////
     m_seed      = 0;
-    srand(m_seed);
     m_initial_temperature = 0.1;
     m_decay_rate = 0.9;
     m_epsilon    = 0.0001;

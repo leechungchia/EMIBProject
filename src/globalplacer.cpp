@@ -74,7 +74,6 @@ void GlobalPlacer::m_tree_node_generation(vector<die*>& t_dies, vector<EMIB*>& t
 
 void GlobalPlacer::m_random_net_generate(int num)
 {
-    srand(m_seed);
     int index_1;
     int index_2;
     die* bk_1;
@@ -115,7 +114,6 @@ void GlobalPlacer::m_random_net_generate(int num)
 }
 
 void GlobalPlacer::m_random_die_generate(int t_num, pair<int, int> t_width_range, pair<int, int> t_height_range){
-	srand(m_seed);
     float w;
     float h;
     for(int i=0; i<t_num; ++i){
@@ -127,7 +125,6 @@ void GlobalPlacer::m_random_die_generate(int t_num, pair<int, int> t_width_range
 }
 
 void GlobalPlacer::m_random_EMIB_generate(int t_num, pair<int, int> t_overlap_range, pair<int, int> t_distance_range, pair<int, int> t_occupied_range){
-	srand(m_seed);
     int die_1;
     int die_2;
     float o;
@@ -239,7 +236,6 @@ void GlobalPlacer::m_maximum_spanning_tree(vector<die*>& t_dies, vector<EMIB*>& 
         vector<die*> temp;
         MSTtrees.push_back(temp);
     }
-    srand(m_initial_topology_seed);
     int net_num = 0;
     int iterator = 0;
     while(net_num < t_dies.size()-1){
@@ -291,7 +287,6 @@ void GlobalPlacer::m_reduction_assignment(MST_node* t_root, vector<MST_node*> t_
 }
 
 void GlobalPlacer::m_random_assignment(MST_node* t_root , vector<MST_node*>& t_bottom, vector<vector<int>>& t_edges){
-    srand(m_initial_topology_seed);
     int root_size = t_root->bottom_nodes.size();
     int input_edge_num;
     int output_edge_num;
@@ -301,7 +296,6 @@ void GlobalPlacer::m_random_assignment(MST_node* t_root , vector<MST_node*>& t_b
     for(int i=0; i<root_size; ++i){
         root_order.push_back(i);
     }
-    vector<MST_node*> root_set;
     random_shuffle(root_order.begin(), root_order.end());
     for(int i=0; i<root_order.size(); ++i){
         vector<MST_node*> sub_bottom;
@@ -312,12 +306,17 @@ void GlobalPlacer::m_random_assignment(MST_node* t_root , vector<MST_node*>& t_b
             sub_bottom.push_back(t_root->bottom_nodes[root_order[i]]);
         }
         bottom.push_back(sub_bottom);
-        root_set.push_back(t_root->bottom_nodes[root_order[i]]);
     }
     int in_out;
-    cout << bottom.size() << endl;
+    map<int, set<int>> edge_map;
+    for(int i=0; i<bottom.size(); ++i){
+        set<int> temp;
+        edge_map[i] = temp;
+    }
     if(bottom.size() > 1){
         for(int i=0; i<bottom.size(); ++i){
+            set<int> in;
+            set<int> out;
             in_out=rand()%2;
             if(in_out == 0){
                 input_edge_num = rand()%(bottom.size()-i);
@@ -328,36 +327,46 @@ void GlobalPlacer::m_random_assignment(MST_node* t_root , vector<MST_node*>& t_b
                 input_edge_num = bottom.size() - i- 1 - output_edge_num;
             }
             for(int j=i+1; j<input_edge_num+i+1; ++j){
-                for(int z=0; z<bottom[i].size(); ++z){
-                    vector<int> edge;
-                    for(int w=0; w<bottom[j].size(); ++w){
-                        edge.push_back(bottom[j][w]->dual_die->initial_index2());
-                        edge.push_back(bottom[i][z]->dual_die->initial_index2());
-                        edge.push_back(1);
-                        edges.push_back(edge);
+                if(edge_map[i].find(j) == edge_map[i].end()){
+                    for(int z=0; z<bottom[i].size(); ++z){
+                        for(int w=0; w<bottom[j].size(); ++w){
+                            vector<int> edge;
+                            edge.push_back(bottom[j][w]->dual_die->initial_index2());
+                            edge.push_back(bottom[i][z]->dual_die->initial_index2());
+                            edge.push_back(1);
+                            edges.push_back(edge);
+                            in.insert(j);
+                        }
                     }
                 }
             }
             for(int j=i+input_edge_num+1; j<bottom.size(); ++j){
-                for(int z=0; z<bottom[i].size(); ++z){
-                    vector<int> edge;
-                    for(int w=0; w<bottom[j].size(); ++w){
-                        edge.push_back(bottom[i][z]->dual_die->initial_index2());
-                        edge.push_back(bottom[j][w]->dual_die->initial_index2());
-                        edge.push_back(1);
-                        edges.push_back(edge);
+                if(edge_map[i].find(j) == edge_map[i].end()){
+                    for(int z=0; z<bottom[i].size(); ++z){
+                        for(int w=0; w<bottom[j].size(); ++w){
+                            vector<int> edge;
+                            edge.push_back(bottom[i][z]->dual_die->initial_index2());
+                            edge.push_back(bottom[j][w]->dual_die->initial_index2());
+                            edge.push_back(1);
+                            edges.push_back(edge);
+                            out.insert(j);
+                        }
                     }
                 }
             }
             for(int j=i+1; j<input_edge_num+i+1; ++j){
                 for(int s=i+input_edge_num+1; s<bottom.size(); ++s){
-                    for(int z=0; z<bottom[j].size(); ++z){
-                        vector<int> edge;
-                        for(int w=0; w<bottom[s].size(); ++w){
-                            edge.push_back(bottom[j][z]->dual_die->initial_index2());
-                            edge.push_back(bottom[s][w]->dual_die->initial_index2());
-                            edge.push_back(0);
-                            edges.push_back(edge);
+                    if(in.find(j) != in.end() && out.find(s)!=out.end()){
+                        for(int z=0; z<bottom[j].size(); ++z){
+                            for(int w=0; w<bottom[s].size(); ++w){
+                                vector<int> edge;
+                                edge.push_back(bottom[j][z]->dual_die->initial_index2());
+                                edge.push_back(bottom[s][w]->dual_die->initial_index2());
+                                edge.push_back(0);
+                                edges.push_back(edge);
+                                edge_map[j].insert(s);
+                                edge_map[s].insert(j);
+                            }
                         }
                     }
                 }
@@ -373,7 +382,6 @@ void GlobalPlacer::m_random_assignment(MST_node* t_root , vector<MST_node*>& t_b
     }
 }
 void GlobalPlacer::m_graph_connection(MST_node* t_root1, MST_node* t_root2, vector<vector<int>>& t_h_edges, vector<vector<int>>& t_v_edges){
-    srand(m_initial_topology_seed);
     queue<MST_node*> q1;
     queue<MST_node*> q2;
     q1.push(t_root1);
@@ -414,25 +422,15 @@ void GlobalPlacer::m_graph_connection(MST_node* t_root1, MST_node* t_root2, vect
                 edge.push_back(nodes_1[i]->dual_die->initial_index2());                
             }
             edge.push_back(1);
-            in_graph = rand()%2;
-            if(in_graph == 0){
-                h_edges.push_back(edge);
-            }
-            else{
-                v_edges.push_back(edge);
-            }
+            h_edges.push_back(edge);
         }
     }
     for(int i=0; i<h_edges.size(); ++i){
         t_h_edges.push_back(h_edges[i]);
     }
-    for(int i=0; i<v_edges.size(); ++i){
-        t_v_edges.push_back(v_edges[i]);
-    }
 }
 
 void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
-    srand(m_initial_topology_seed);
     set<die*> h_set;
     set<die*> v_set;
     vector<die*> h_vec;
@@ -551,7 +549,7 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         }
         m_maximum_spanning_tree(h_ecg[i]->dieset, h_ecg[i]->EMIBset, MST_root);
         m_reduction_assignment(MST_root, h_abovenode, t_ECGs->h_edges);
-        cout << "qqqqqqq" << endl;
+        cout << "ww" << endl;
         for(int i=0; i<t_ECGs->h_edges.size(); ++i){
             cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
         }
@@ -562,10 +560,6 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         virtual_h_root.bottom_nodes.push_back(h_roots[i]);
     }
     m_random_assignment(&virtual_h_root, h_abovenode, t_ECGs->v_edges);
-    cout << "xxx" << endl;
-    for(int i=0; i<t_ECGs->v_edges.size(); ++i){
-        cout << t_ECGs->v_edges[i][0] << "--->" << t_ECGs->v_edges[i][1] << endl;
-    }
     for(int i=0; i<v_ecg.size(); ++i){
         for(int j=0; j<v_ecg[i]->dieset.size(); ++j){
             v_ecg[i]->dieset[j]->Reset();
@@ -573,10 +567,6 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         }
         m_maximum_spanning_tree(v_ecg[i]->dieset, v_ecg[i]->EMIBset, MST_root);
         m_reduction_assignment(MST_root, v_abovenode, t_ECGs->v_edges);
-        cout << "ccc" << endl;
-        for(int i=0; i<t_ECGs->v_edges.size(); ++i){
-            cout << t_ECGs->v_edges[i][0] << "--->" << t_ECGs->v_edges[i][1] << endl;
-        }
         v_roots.push_back(MST_root);
         v_abovenode.clear();
     }
@@ -584,6 +574,10 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         virtual_v_root.bottom_nodes.push_back(v_roots[i]);
     }
     m_random_assignment(&virtual_v_root, v_abovenode, t_ECGs->h_edges);
+    cout << "ss" << endl;
+    for(int i=0; i<t_ECGs->h_edges.size(); ++i){
+        cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
+    }
     m_graph_connection(&virtual_h_root, &virtual_v_root, t_ECGs->h_edges, t_ECGs->v_edges);
     cout << "VCG edge: " << endl;
     for(int i=0; i<t_ECGs->v_edges.size(); ++i){
@@ -621,7 +615,7 @@ void GlobalPlacer::write_output(char* arg1, char* arg2, char* arg3)
     {
         current_die = m_DieVec.at(i);
         bgraph << i << " "<<current_die->x() << " "<< current_die->y() << " "<< current_die->current_w() <<
-        " "<< current_die->current_h() << endl;
+        " "<< current_die->current_h() << " " << current_die->initial_index2() << endl;
     }
     bgraph.close();
 

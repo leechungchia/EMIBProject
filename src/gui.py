@@ -18,7 +18,7 @@ for i in range(len(net)):
 #for i in range(len(emib)):
 	#emib[i] = emib[i].split(" ")
 fig,ax = plt.subplots()
-plt.axis([0,120,0,120])
+plt.axis([0,120,0,120] )
 del data[-1]
 del net[-1]
 #del emib[-1]
@@ -29,6 +29,10 @@ for i in data:
 	obstacle = patches.Rectangle((int(i[1]),int(i[2])), int(i[3]),int(i[4]),fill = False, color=col)
 	if sys.argv[4] == "0":
 		ax.add_patch(obstacle)
+		rx, ry = obstacle.get_xy()
+		cx = rx + obstacle.get_width()/2.0
+		cy = ry + obstacle.get_height()/2.0
+		ax.annotate(i[5], (cx, cy), color='black', weight='bold', fontsize=10, ha='center', va='center')
 	counter+=1
 counter = 0
 for i in net:

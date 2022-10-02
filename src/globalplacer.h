@@ -35,17 +35,17 @@ using namespace std;
 
 class GlobalPlacer{
 public:
-    GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num, string mode){
-        m_seed = 30;
-        m_initial_topology_seed = 31;
+    GlobalPlacer(char* die_input, char* EMIB_input, string net_input, int net_num, string mode, int t_seed, int t_initial_seed){
+        m_seed = t_seed;
+        m_initial_topology_seed = t_initial_seed;
         if(mode == "normal"){
             m_read_die_input(die_input);
             m_read_EMIB_input(EMIB_input);
             m_read_net_input(net_input, net_num);
         }
         else if(mode == "test"){
-            m_random_die_generate(6, make_pair(6,12), make_pair(6,12));
-            m_random_EMIB_generate(10, make_pair(1,2), make_pair(1,1), make_pair(1,1));
+            m_random_die_generate(15, make_pair(6,12), make_pair(6,12));
+            m_random_EMIB_generate(105, make_pair(1,2), make_pair(1,1), make_pair(1,1));
         }
         cout << "Die Num: " << m_DieVec.size() << endl;
         cout << "EMIB Num: " << m_EMIBNets.size() << endl;
@@ -86,7 +86,8 @@ public:
     SA* OverallPlacer;
     vector<SA*> PartialPlacers;
     void write_output(char* arg1, char* arg2, char* arg3);
-    void set_random_seed(int t_seed){m_seed = t_seed;}
+    void set_random_seed(int t_seed){m_seed = t_seed;};
+    void set_initial_seed(int t_seed){m_initial_topology_seed = t_seed;};
     void do_partial_placement(){
         for(int i=0; i<m_ECGs.size(); ++i){
             vector<vector<float>> die_inf = PartialPlacers[i]->get_dies_inf();
@@ -95,6 +96,7 @@ public:
                 m_ECGs[i]->dieset[j]->set_x(die_inf[j][0]);
                 m_ECGs[i]->dieset[j]->set_y(die_inf[j][1]);
                 m_ECGs[i]->dieset[j]->set_r(die_inf[j][2]);
+                m_ECGs[i]->dieset[j]->set_initial_index(j);;
             }
         }
     }

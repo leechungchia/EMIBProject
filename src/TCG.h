@@ -40,16 +40,24 @@ class TCGNode{
         float  value(){return m_value;}
         void   Setvalue(float t_value){m_value = t_value;};
         float  weight(){return m_weight;}
+        void   SetWeight(float t_weight){m_weight = t_weight;}
         float  initial_weight(){return m_initial_weight;};
+        void   SetInitialWeight(float t_weight){m_initial_weight=t_weight;};
         void   SetDepth(int t_depth){m_depth = t_depth;}
         int    depth(){return m_depth;}
         bool   finished(){return m_visited_counter == 0;};
-        void   EdgeConnect(set<TCGNode*>* t_InsertedNodes);
         void   UpperInsert(TCGNode* t_node){m_UpperNodes.insert(t_node);};
         void   BottomInsert(TCGNode* t_node){m_BottomNodes.insert(t_node);};
         string CodeName(){return m_code_name;};
+        void   SetCodeName(string t_name){m_code_name=t_name;};
         int    r(){return m_rotated;};
-        void   set_r(){(m_rotated +1 == 4)?0:m_rotated+1;};
+        void   set_r(){
+            m_rotated = (m_rotated +1 == 4)?(0):(m_rotated+1);
+            float temp = m_weight;
+            m_weight = m_DualNode->weight();
+            m_DualNode->SetWeight(temp);
+        };
+        void   set_r(int t_r){m_rotated = t_r;};
         void   HardInitialize();
         void   SoftInitialize();
         set<TCGNode*>* UpperNodes(){return &m_UpperNodes;};
@@ -60,7 +68,6 @@ class TCGNode{
         void           SetDualNode(TCGNode* t_node){m_DualNode = t_node;};
         float          Overlap(TCGNode* t_node);
         float          Distance(TCGNode* t_node);
-        int            ID(){return m_ID;};
         int            EMIBCounter(){return m_EMIBCounter;};
         int            TraverseCounter(){return m_visited_counter;};
         void           ResetEMIBCounter(){m_EMIBCounter = EMIBs.size();};
@@ -83,7 +90,6 @@ class TCGNode{
         set<TCGNode*>    m_DirectBottomNodes;
         TCGNode*         m_BaseNode;
         TCGNode*         m_DualNode;
-        int              m_ID;
         int              m_depth;
         /// Geometric Inf ///
         float            m_weight;
@@ -108,8 +114,6 @@ class EMIBP {
             }
         }
         EMIBP(){}
-        bool Legalization(vector<EMIBP*>& t_netset, map<EMIBNet*, int>& t_legal_check);
-        void Legalization(vector<TCGNode*>& t_nodes);
         int     index(){return m_index;};
         void    setindex(int t_index){m_index = t_index;};
         map<TCGNode* , vector<EMIBNet*>>* NetMap(){return &m_nets;};
@@ -119,10 +123,10 @@ class EMIBP {
                 m_nodes[j]->decreaseEMIBCounter(m_nets[m_nodes[j]].size());
             } 
         }
+        vector<TCGNode*> m_nodes;
     private:
         int  m_index;
         void m_getbottomEMIBP(); 
-        vector<TCGNode*> m_nodes;
         map<TCGNode* , vector<EMIBNet*>> m_nets;
 };
 
@@ -137,10 +141,11 @@ class EMIBP_comparator{
 
 class EMIBNet {
     public:
-        EMIBNet(string t_code_name, TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance, float t_occupied):m_code_name(t_code_name), m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap),m_occupied(t_occupied), m_is_visited(0){}
+        EMIBNet(string t_code_name, TCGNode* t_node_1, TCGNode* t_node_2, float t_overlap, float t_distance, float t_occupied):m_code_name(t_code_name), m_node_1(t_node_1), m_node_2(t_node_2), m_distance(m_distance), m_overlap(t_overlap),m_occupied(t_occupied), m_is_visited(0), finished(false){}
         bool isOverlapValid(float& t_overlap);
         bool isDistanceValid();
         bool Legalize();
+        string CodeName(){return m_code_name;};
         float OverlapValue(){return m_overlap;};
         TCGNode* node1(){return m_node_1;};
         TCGNode* node2(){return m_node_2;};
@@ -157,6 +162,7 @@ class EMIBNet {
                 t_low  = m_node_1;
             }
         };
+        bool     finished;
     private:
         float    m_overlap;
         float    m_distance;
@@ -205,7 +211,19 @@ class EMIBNet_comparator{
 
 class node_comparator{
     public:
-        bool operator()(TCGNode* a, TCGNode* b){return a->value() > b->value();};
+        bool operator()(TCGNode* a, TCGNode* b){
+            if(a != b){
+                if(a->value() == b->value()){
+                    return a < b;
+                }
+                else{
+                    return a->value() < b->value();
+                }
+            }
+            else{
+                return a->value() < b->value();
+            }
+        };
 };
 
 class Legalizer{
@@ -213,17 +231,18 @@ class Legalizer{
 
     public:
 
-        Legalizer(){};
+        Legalizer():test(true){};
         void FindIllegal(EMIBP* t_EMIBP, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet);
         void FindCritical(EMIBNet*& t_EMIBNet, TCGNode*& t_high, TCGNode*& t_low, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet);
         bool SetLegal(EMIBNet* t_EMIBNet);
         void CheckViolation(set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, set<EMIBNet*, EMIBNet_comparator>& t_newWrongSet);
         void UpdateAbove(TCGNode* t_node, set<TCGNode*>& t_NodeSet);
         void EMIBPUpdate(EMIBP* t_EMIBP, set<TCGNode*>& t_UpdateNodes);
-        void SelfUpdate(TCGNode* t_node, set<TCGNode*>& t_UpdateNodeSet);
+        void SelfUpdate(TCGNode* t_node, set<TCGNode*>& t_UpdateNodeSet, bool t_top);
         bool BranchUpdate(EMIBNet* t_EMIBNet, TCGNode* t_high, TCGNode* t_low, set<EMIBNet*, EMIBNet_comparator>& t_newWrongSet, pair<TCGNode*, TCGNode*>& t_target, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, bool t_state);
         bool CompleteUpdate(EMIBNet* t_EMIBNet, TCGNode* t_high, TCGNode* t_low, set<EMIBNet*, EMIBNet_comparator>& t_CorrectSet, set<EMIBNet*, EMIBNet_comparator>& t_WrongSet);
         bool Legalization(EMIBP* t_EMIBP);
+        bool test;
     private:
 
 };
@@ -249,6 +268,7 @@ class TCGGraph{
         TCGGraph(string t_direction_type):m_direction_type(t_direction_type){
             m_source = new TCGNode("source", 0);
             m_target = new TCGNode("target", 0);
+            m_source->Setvalue(0);
             m_EMIBdepth = 0;
             legal = new Legalizer;
         }
@@ -260,6 +280,8 @@ class TCGGraph{
         void ConstraintEdgeAdd(vector<vector<int>>& t_edges);
         void OriginalTraverse();
         void DirectEdgeAdd();
+        void RemoveEdge(TCGNode* t_below, TCGNode* t_upper);
+        void AddEdge(TCGNode* t_below, TCGNode* t_upper);
         int EMIBnum(){
             int num = 0;
             for(int i=0; i<m_Nets.size(); ++i){
@@ -268,6 +290,10 @@ class TCGGraph{
             return num/2;
         }
         void set_TCGNodes(vector<TCGNode*>* t_TCG){m_TCGNodes = t_TCG;};
+        TCGNode* source(){return m_source;};
+        TCGNode* target(){return m_target;};
+        vector<vector<EMIBNet*>> m_Nets;
+        vector<TCGNode*>*        m_TCGNodes;
     private:
         void     m_CoorGenerate();
         bool     m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs);
@@ -278,8 +304,6 @@ class TCGGraph{
         EMIBP*   m_EMIBPSource;
         TCGNode* m_source;
         TCGNode* m_target;
-        vector<TCGNode*>*        m_TCGNodes;
-        vector<vector<EMIBNet*>> m_Nets;
         string   m_direction_type;
         vector<EMIBP*> m_EMIBPvec;
         int      m_EMIBdepth;
@@ -291,10 +315,18 @@ class TCG{
         TCG(){
             m_HCG = new TCGGraph("HCG");
             m_VCG = new TCGGraph("VCG");
+            m_HCG->source()->SetDualNode(m_VCG->source());
+            m_VCG->source()->SetDualNode(m_HCG->source());
+            m_HCG->target()->SetDualNode(m_VCG->target());
+            m_VCG->target()->SetDualNode(m_HCG->target());
         }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edges);
         void test_Legalization();
+        void movement_rotation(int t_die);
+        void movement_swap(int t_die1, int t_die2);
+        void movement_reverse(int t_die);
+        void movement_move(int t_die);
         vector<float> get_dies_coor(int t_die_index);
 
     private:
@@ -306,6 +338,7 @@ class TCG{
         vector<pair<CommonTCGPin*, CommonTCGPin*>> m_common_nets;
         unordered_map<int, TCGNode*> m_die_map;
         vector<EMIBInf>     m_EMIBInfs;
+        int                 m_seed;
 };
 
 class uf_comparator{

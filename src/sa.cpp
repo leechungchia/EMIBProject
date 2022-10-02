@@ -6,7 +6,6 @@
 
 void SA::set_random_seed(int t_seed){
     m_seed = t_seed;
-    srand(m_seed);
 }
 
 void SA::set_SA_parameter(float t_initial_temperature, float t_decay_rate, float t_epsilon, unsigned  t_k, unsigned t_time_upperbound){
