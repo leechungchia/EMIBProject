@@ -251,10 +251,6 @@ bool TCGGraph::Overlap_Legalization(){
     bool           legalization_success;
     //cout << "Toppest bound stage" << endl;
     bound_success = m_TraverseToBound(bound, bound_EMIBs);
-    for(int i=0; i<bound.size(); ++i){
-        cout << bound[i]->CodeName() << ",";
-    }
-    cout << endl;
     while(bound_success && bound_EMIBs.size() > 0){
         for(int i=0; i<bound_EMIBs.size(); ++i){
             //cout << "Legalization stage" << endl;
@@ -268,10 +264,6 @@ bool TCGGraph::Overlap_Legalization(){
         }
         //cout << "Toppest bound stage" << endl;
         bound_success = m_TraverseToBound(bound, bound_EMIBs);
-        for(int i=0; i<bound.size(); ++i){
-            cout << bound[i]->CodeName() << ",";
-        }
-        cout << endl;
     }
     if(!bound_success){
         m_EMIBdepth = 0;
@@ -778,7 +770,7 @@ void TCG::test_Legalization(){
     int die1;
     int die2;
     int move;
-    for(int i=0; i<100; ++i){
+    for(int i=0; i<1000; ++i){
         die1 = rand()%m_TCGNodes.size();
         die2 = rand()%m_TCGNodes.size();
         move = rand()%4;
@@ -795,12 +787,13 @@ void TCG::test_Legalization(){
                 movement_swap(die1, die2);
                 break;
             case 2:
-                cout << "rotate move" << endl;
-                movement_rotation(die1);
-                break;
-            default:
                 cout << "reverse move" << endl;
                 movement_reverse(die1);
+                break;
+            default:
+                cout << "rotation move" << endl;
+                movement_rotation(die1);
+                
                 break;
         }
         string h_success = (m_HCG->Overlap_Legalization())?("success"):("false");
@@ -841,6 +834,9 @@ void TCG::movement_rotation(int t_die){
         }
     }
     for(int i=0;i<m_HCG->m_TCGNodes->size(); ++i){
+        m_HCG->m_TCGNodes->at(i)->EMIBPs.clear();
+    }
+    for(int i=0;i<m_VCG->m_TCGNodes->size(); ++i){
         m_HCG->m_TCGNodes->at(i)->EMIBPs.clear();
     }
 }
