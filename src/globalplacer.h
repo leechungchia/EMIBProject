@@ -45,17 +45,13 @@ public:
         }
         else if(mode == "test"){
             m_random_die_generate(15, make_pair(6,12), make_pair(6,12));
-            m_random_EMIB_generate(105, make_pair(1,2), make_pair(1,1), make_pair(1,1));
+            m_random_EMIB_generate(18, make_pair(1,2), make_pair(1,1), make_pair(1,1));
         }
-        cout << "Die Num: " << m_DieVec.size() << endl;
-        cout << "EMIB Num: " << m_EMIBNets.size() << endl;
-        cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
-        for(int i=0; i<m_EMIBNets.size(); ++i){
-            cout << m_EMIBNets[i]->die_1 << "<--vffvfvf->" << m_EMIBNets[i]->die_2 << endl; 
-        }
+        //cout << "Die Num: " << m_DieVec.size() << endl;
+        //cout << "EMIB Num: " << m_EMIBNets.size() << endl;
+        //cout << "Common Net Num: " << m_CommonNetVec.size() << endl;
         m_ECG_extraction(m_DieVec, m_EMIBNets, m_ECGs);
         for(auto it=m_ECGs.begin(); it!=m_ECGs.end();){
-            cout << " cdcdcdc " << (*it)->EMIBset.size() << endl;
             if((*it)->dieset.size() == 1){
                 m_NormalDieVec.push_back((*it)->dieset[0]);
                 it = m_ECGs.erase(it);
@@ -65,23 +61,24 @@ public:
             }
         }
         for(int i=0; i<m_ECGs.size(); ++i){
-            cout << "ECG" << i << ":";
+            //cout << "ECG" << i << ":";
             for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
-                cout << m_ECGs[i]->dieset[j]->code_name() << ",";
+                //cout << m_ECGs[i]->dieset[j]->code_name() << ",";
                 m_ECGs[i]->dieset[j]->set_initial_index2(j);
+                m_inNormalDieVec.push_back(m_ECGs[i]->dieset[j]);
             }
             cout << endl;
             m_initial_topology_generation(m_ECGs[i]);
-            cout << "ECG " << i << " HCG edge num:" << m_ECGs[i]->h_edges.size() << endl;
-            cout << "ECG " << i << " VCG edge num:" << m_ECGs[i]->v_edges.size() << endl;
-            cout << endl;
-            cout << "ECG" << i << " EMIB num: " << m_ECGs[i]->EMIBset.size() << endl;
+            //cout << "ECG " << i << " HCG edge num:" << m_ECGs[i]->h_edges.size() << endl;
+            //cout << "ECG " << i << " VCG edge num:" << m_ECGs[i]->v_edges.size() << endl;
+            //cout << endl;
+            //cout << "ECG" << i << " EMIB num: " << m_ECGs[i]->EMIBset.size() << endl;
             SA* new_partialplacer = new SA();
             new_partialplacer->InputData(m_ECGs[i]->TransformDieToTCG(), m_ECGs[i]->TransformEMIBToTCG(), m_ECGs[i]->MappingEMIBToDie(), m_ECGs[i]->h_edges, m_ECGs[i]->v_edges, "TCG");
             PartialPlacers.push_back(new_partialplacer);
         }
         OverallPlacer = new SA();
-        cout << "Initialization Finished" << endl;
+        //cout << "Initialization Finished" << endl;
     }
     SA* OverallPlacer;
     vector<SA*> PartialPlacers;
@@ -90,8 +87,8 @@ public:
     void set_initial_seed(int t_seed){m_initial_topology_seed = t_seed;};
     void do_partial_placement(){
         for(int i=0; i<m_ECGs.size(); ++i){
-            vector<vector<float>> die_inf = PartialPlacers[i]->get_dies_inf();
-            cout << "updated die num: " << die_inf.size() << endl;
+            vector<vector<float>> die_inf = PartialPlacers[i]->get_dies_inf(0);
+            //cout << "updated die num: " << die_inf.size() << endl;
             for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
                 m_ECGs[i]->dieset[j]->set_x(die_inf[j][0]);
                 m_ECGs[i]->dieset[j]->set_y(die_inf[j][1]);
@@ -103,7 +100,7 @@ public:
     void do_overall_placement(){
         OverallPlacer->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "B*-tree");
         OverallPlacer->start();
-        vector<vector<float>> die_inf = OverallPlacer->get_dies_inf();
+        vector<vector<float>> die_inf = OverallPlacer->get_dies_inf(0);
         for(int i=0; i<m_DieVec.size(); ++i){
             m_DieVec[i]->set_x(die_inf[i][0]);
             m_DieVec[i]->set_y(die_inf[i][1]);
@@ -129,6 +126,7 @@ private:
     void m_random_assignment(MST_node* t_root , vector<MST_node*>& t_bottom, vector<vector<int>>& t_edges);
     void m_graph_connection(MST_node* t_root1, MST_node* t_root2, vector<vector<int>>& t_h_edges, vector<vector<int>>& t_v_edges);
     int  m_search_die(string t_name);
+    float m_check_similarity(TCG* t_tree1, TCG* t_tree2);
     vector<pair<float, float>> m_TransformDieToBstar();
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();
     vector<pair<float, float>>  m_TransformECGToTCG();
@@ -136,6 +134,7 @@ private:
     vector<pair<int, int>> m_MappingEMIBToDie();
     vector<die*>  m_DieVec;
     vector<die*>  m_NormalDieVec;
+    vector<die*> m_inNormalDieVec;
     vector<pair<CommonPin*, CommonPin*>> m_CommonNetVec;
     vector<EMIB*> m_EMIBNets;
     vector<ECG*>  m_ECGs;

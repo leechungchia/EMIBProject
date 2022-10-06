@@ -173,7 +173,6 @@ void GlobalPlacer::m_findroot(tree_node*& t_node, tree_node*& t_root){
     while(current_node->upper_node != 0){
         updatenodes.push_back(current_node);
         current_node = current_node->upper_node;
-        cout << current_node << endl;
     }
     t_root = current_node;
     for(int i=0; i<updatenodes.size(); ++i){
@@ -263,7 +262,7 @@ void GlobalPlacer::m_maximum_spanning_tree(vector<die*>& t_dies, vector<EMIB*>& 
             }
         }
     }
-    cout << "MST tree constructed successfully" << endl;
+    //cout << "MST tree constructed successfully" << endl;
 }
 
 void GlobalPlacer::m_reduction_assignment(MST_node* t_root, vector<MST_node*> t_aboveroots,vector<vector<int>>& t_edges){
@@ -513,18 +512,18 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         EMIB* sub_emib = new EMIB(t_ECGs->dieset[v_edge[i]->die_1]->initial_index(), t_ECGs->dieset[v_edge[i]->die_2]->initial_index(), v_edge[i]->overlap, v_edge[i]->distance, v_edge[i]->occupied);
         v_edge[i] = sub_emib;
     }
-    cout << "HCG Node: " << endl;
+    //cout << "HCG Node: " << endl;
     for(int i=0; i<h_vec.size(); ++i){
-        cout << h_vec[i]->initial_index2() << ",";
+        //cout << h_vec[i]->initial_index2() << ",";
     }
-    cout << endl;
-    cout << "VCG Node: " << endl;
+    //cout << endl;
+    //cout << "VCG Node: " << endl;
     for(int i=0; i<v_vec.size(); ++i){
-        cout << v_vec[i]->initial_index2() << ",";
+        //cout << v_vec[i]->initial_index2() << ",";
     }
-    cout << endl;
-    cout << "HCG EMIB edge num: " << h_edge.size() << endl;
-    cout << "VCG EMIB edge num: " << v_edge.size() << endl;
+    //cout << endl;
+    //cout << "HCG EMIB edge num: " << h_edge.size() << endl;
+    //cout << "VCG EMIB edge num: " << v_edge.size() << endl;
     m_ECG_extraction(h_vec, h_edge, h_ecg);
     m_ECG_extraction(v_vec, v_edge, v_ecg);
     for(int i=0; i<h_edge.size(); ++i){
@@ -533,8 +532,8 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
     for(int i=0; i<v_edge.size(); ++i){
         delete v_edge[i];
     }
-    cout << "h subgroup num: " << h_ecg.size() << endl;
-    cout << "v_subgroup num: " << v_ecg.size() << endl;
+    //cout << "h subgroup num: " << h_ecg.size() << endl;
+    //cout << "v_subgroup num: " << v_ecg.size() << endl;
     vector<MST_node*>   h_roots;
     vector<MST_node*>   v_roots;
     MST_node            virtual_h_root(0);
@@ -549,9 +548,8 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         }
         m_maximum_spanning_tree(h_ecg[i]->dieset, h_ecg[i]->EMIBset, MST_root);
         m_reduction_assignment(MST_root, h_abovenode, t_ECGs->h_edges);
-        cout << "ww" << endl;
         for(int i=0; i<t_ECGs->h_edges.size(); ++i){
-            cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
+            //cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
         }
         h_roots.push_back(MST_root);
         h_abovenode.clear();
@@ -574,23 +572,19 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         virtual_v_root.bottom_nodes.push_back(v_roots[i]);
     }
     m_random_assignment(&virtual_v_root, v_abovenode, t_ECGs->h_edges);
-    cout << "ss" << endl;
     for(int i=0; i<t_ECGs->h_edges.size(); ++i){
-        cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
+        //cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
     }
     m_graph_connection(&virtual_h_root, &virtual_v_root, t_ECGs->h_edges, t_ECGs->v_edges);
-    cout << "VCG edge: " << endl;
+    //cout << "VCG edge: " << endl;
     for(int i=0; i<t_ECGs->v_edges.size(); ++i){
-        cout << t_ECGs->v_edges[i][0] << "--->" << t_ECGs->v_edges[i][1] << endl;
+        //cout << t_ECGs->v_edges[i][0] << "--->" << t_ECGs->v_edges[i][1] << endl;
     }
-    cout << "HCG edge: " << endl;
+    //cout << "HCG edge: " << endl;
     for(int i=0; i<t_ECGs->h_edges.size(); ++i){
-        cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
+        //cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
     }
 }
-
-
-
 
 
 
@@ -607,13 +601,16 @@ void GlobalPlacer::write_output(char* arg1, char* arg2, char* arg3)
     bgraph.open(arg1);
     die* current_die;
     pair<CommonPin*, CommonPin*> current_net;
+    EMIB* current_emib;
     CommonPin* pin_1;
     CommonPin* pin_2;
+    die* die_1;
+    die* die_2;
     float width;
     float height;
-    for(unsigned i=0; i<m_DieVec.size(); ++i)
+    for(unsigned i=0; i<m_inNormalDieVec.size(); ++i)
     {
-        current_die = m_DieVec.at(i);
+        current_die = m_inNormalDieVec.at(i);
         bgraph << i << " "<<current_die->x() << " "<< current_die->y() << " "<< current_die->current_w() <<
         " "<< current_die->current_h() << " " << current_die->initial_index2() << endl;
     }
@@ -629,7 +626,17 @@ void GlobalPlacer::write_output(char* arg1, char* arg2, char* arg3)
         bgraph_2 << pin_1->x() << " " << pin_1->y() <<
         " " << pin_2->x() << " " << pin_2->y() << endl;
     }
-    bgraph_2.close();
+    ofstream bgraph_3;
+    bgraph_3.open(arg3);
+    for(int i=0; i<m_EMIBNets.size(); ++i)
+    {
+        current_emib = m_EMIBNets.at(i);
+        die_1 = m_DieVec[current_emib->die_1];
+        die_2 = m_DieVec[current_emib->die_2];
+        bgraph_3 << (int)(die_1->x() + die_1->current_w()/2)<< " " << (int)(die_1->y() + die_1->current_h()/2)<<
+        " " << (int)(die_2->x() + die_2->current_w()/2)<< " " << (int)(die_2->y() + die_2->current_h()/2)<< endl;
+    }
+    bgraph_3.close();
     //sa->write_output(arg1, arg3);
 }
 
@@ -776,3 +783,15 @@ void GlobalPlacer::m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs
 }
 
 
+float m_check_similarity(TCG* t_tree1, TCG* t_tree2){
+    int counter=0;
+    for(int i=0; i<t_tree1->m_TCGNodes.size(); ++i){
+        if(t_tree1->similarity_map_h[t_tree1->m_TCGNodes[i]] == t_tree2->similarity_map_h[t_tree1->m_TCGNodes[i]]){
+            counter++;
+        }
+        if(t_tree1->similarity_map_v[t_tree1->m_TCGNodes[i]] == t_tree2->similarity_map_v[t_tree1->m_TCGNodes[i]]){
+            counter++;
+        }
+    }
+    return counter/(t_tree1->m_TCGNodes.size()*2);
+}

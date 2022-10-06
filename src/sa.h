@@ -20,7 +20,7 @@
 #include "bstar.h"
 #include "TCG.h"
 
-
+class cost_comparator;
 class SA
 {
 public:
@@ -52,6 +52,12 @@ public:
     m_swap_p    = 0.2;
     m_di_p      = 0.4;
     m_rotate_p  = 0.4;
+    //// phase 1 parameter  ////
+    m_iternum   = 10000;
+    m_similarity_bound    = 0.8;
+    m_reduction_para      = 0.9;
+    m_illegal_para        = 0.1;
+    m_EMIB_overlap_para   = 0.01; 
     }
     void InputData(vector<pair<float, float>> t_DieVec, 
                 vector<pair<pair<float, float>, pair<float, float>>> t_CommonNetVec, 
@@ -79,13 +85,14 @@ public:
                 vector<vector<int>> t_v_edges,
                 string t_structure){
             cout << "TCG mode" << endl;
-            m_TCG = new TCG();
+            TCG* new_TCG = new TCG();
+            m_TCGs.push_back(new_TCG);
             m_size = t_DieVec.size();
             m_time_upperbound = m_k*t_DieVec.size();
             m_structure = t_structure;
-            m_TCG->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
-            m_TCG->GetTCGEdge(t_h_edges, t_v_edges);
-            m_TCG->test_Legalization();
+            m_TCGs[0]->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
+            m_TCGs[0]->GetTCGEdge(t_h_edges, t_v_edges);
+            //m_TCG->test_Legalization();
             cout << "TCGNode Constructed successfully" << endl;
     }
     void  set_random_seed(int t_seed);
@@ -96,14 +103,19 @@ public:
     float get_profile_cost();
     float get_area_cost();
     float get_hpwl_cost();
-    float get_current_cost();
+    float get_current_cost(int t_mode, vector<float> t_input);
+    float phase1_cost();
     float get_current_best_cost();
     void  start();
-    vector<vector<float>> get_dies_inf();
+    void  phase1_start();
+    void  find_legal_solution(int t_num);
+    vector<vector<float>> get_dies_inf(int t_index);
+    vector<TCG*>  m_TCGs;
+    vector<set<pair<TCG*, float>, cost_comparator>> solution_set;
 private:
     //// data structure ////
     BstarTree*    m_BstarTree;
-    TCG*          m_TCG;
+    vector<TCGNode*> m_legal_solutions;
     string        m_structure;
     //// input parameter ////
     int           m_size;
@@ -133,10 +145,22 @@ private:
     float         m_swap_p;
     float         m_di_p;
     float         m_rotate_p;
-
+    //// phase 1 parameter ////
+    int           m_iternum;
+    float         m_similarity_bound;
+    float         m_reduction_para;
+    float         m_illegal_para;
+    float         m_EMIB_overlap_para;
     bool  m_chosen_probability(float diff, float current_temperature);
     void  m_bstar_move();
     void  m_bstar_start();
 };
 
+
+class cost_comparator{
+    public:
+        bool operator()(pair<TCGNode*, float> a, pair<TCGNode*, float> b){
+            return a.second < b.second;
+        }
+};
 #endif

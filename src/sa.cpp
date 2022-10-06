@@ -66,12 +66,22 @@ float SA::get_hpwl_cost(){
 
 ////get the gain////
 
-float SA::get_current_cost()
+float SA::get_current_cost(int t_mode, vector<float> t_input)
 {
-    float profile_cost = get_profile_cost();
-    float area_cost    = get_area_cost();
-    float hpwl_cost    = get_hpwl_cost();
-    float current_cost = profile_cost + area_cost + hpwl_cost;
+    float current_cost;
+    switch(t_mode){
+        case 1:
+            current_cost = t_input[0]*m_reduction_para + t_input[1]*m_illegal_para + t_input[2]*m_EMIB_overlap_para;
+        case 2:
+            current_cost = 0;
+        case 3:
+            float profile_cost = get_profile_cost();
+            float area_cost    = get_area_cost();
+            float hpwl_cost    = get_hpwl_cost();
+            current_cost = profile_cost + area_cost + hpwl_cost;
+            break;
+    }
+
     return current_cost;
 }
 
@@ -196,7 +206,7 @@ void SA::m_bstar_start()
     m_BstarTree->get_bests();
 }
 
-vector<vector<float>> SA::get_dies_inf(){
+vector<vector<float>> SA::get_dies_inf(int t_index){
     vector<vector<float>> result;
     if(m_structure == "B*-tree"){
         for(int i=0; i<m_size; ++i){
@@ -205,11 +215,85 @@ vector<vector<float>> SA::get_dies_inf(){
     }
     else if(m_structure == "TCG"){
         for(int i=0; i<m_size; ++i){
-            result.push_back(m_TCG->get_dies_coor(i));
+            result.push_back(m_TCGs[t_index]->get_dies_coor(i));
         }
     }
 
     return result;
 }
+
+void SA::phase1_start(){
+    float current_temperature = m_initial_temperature;
+    int reject = 0;
+    int training_time = 1;
+    int uphill = 0;
+    float current_cost = 0;
+    float last_cost = 0;
+    float diff = 0;
+    long t_start = clock();
+    long time_process = 0;
+    long ticks = 1000000.0;
+    int move;
+    int die1;
+    int die2;
+    while(((float)reject/(float)training_time < 0.95)&&(current_temperature >= m_epsilon))
+    {
+        training_time = 1;
+        uphill = 0;
+        reject = 0;
+        while((uphill <= m_time_upperbound)&&(training_time <= 2*m_time_upperbound))
+        {
+            training_time += 1;
+            move = rand()%4;
+            die1 = rand()%m_TCGs[0]->m_TCGNodes.size();
+            die2 = rand()%m_TCGs[0]->m_TCGNodes.size();
+            while(die2 == die1){
+                die2 = rand()%m_TCGs[0]->m_TCGNodes.size();
+            }
+            switch(move){
+                case 0:
+                    m_TCGs[0]->movement_rotation(die1);
+                    break;
+                case 1:
+                    m_TCGs[0]->movement_swap(die1, die2);
+                case 2:
+                    m_TCGs[0]->movement_reverse(die1);
+                case 3:
+                    m_TCGs[0]->movement_move(die1);
+            }
+
+            current_cost = get_current_cost();
+            diff = current_cost - last_cost;
+            if(m_chosen_probability(diff, current_temperature))
+            {
+                if(diff > 0)
+                {
+                    uphill += 1;
+                }
+                if(current_cost < m_best_cost)
+                {
+                    m_BstarTree->restore_bests();
+                    m_best_cost = current_cost;
+                    cout << "current cost: " << m_best_cost << endl;
+                    cout << "bound: " << get_profile_cost() << "area: " << get_area_cost() << "hpwl: " << get_hpwl_cost() << endl; 
+                }
+                last_cost = current_cost;
+            }
+            else
+            {
+                m_BstarTree->get_backups();
+                reject += 1;
+            }
+        }
+        current_temperature *= m_decay_rate;
+		long t_end = clock();
+		time_process = t_end - t_start;
+		if(time_process> ticks*60*10){
+			break;
+		}
+    }
+    m_BstarTree->get_bests();
+}
+
 
 
