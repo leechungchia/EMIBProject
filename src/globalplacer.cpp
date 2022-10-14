@@ -429,7 +429,7 @@ void GlobalPlacer::m_graph_connection(MST_node* t_root1, MST_node* t_root2, vect
     }
 }
 
-void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
+void GlobalPlacer::m_initial_topology_generation(int t_index){
     set<die*> h_set;
     set<die*> v_set;
     vector<die*> h_vec;
@@ -444,50 +444,52 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
     die* root;
     set<die*>::iterator it_1;
     set<die*>::iterator it_2;
-    int r_edge_num = t_ECGs->EMIBset.size();
+    m_ECGs[t_index]->h_edges.clear();
+    m_ECGs[t_index]->v_edges.clear();
+    int r_edge_num = m_ECGs[t_index]->EMIBset.size();
     int h_die_num;
     int v_die_num;
-    while(r_edge_num > t_ECGs->EMIBset.size()*0.3){
-        h_die_num = rand()%t_ECGs->dieset.size();
-        v_die_num = t_ECGs->dieset.size() - h_die_num;
+    while(r_edge_num > m_ECGs[t_index]->EMIBset.size()*0.3){
+        h_die_num = rand()%m_ECGs[t_index]->dieset.size();
+        v_die_num = m_ECGs[t_index]->dieset.size() - h_die_num;
         v_set.clear();
         h_set.clear();
         v_edge.clear();
         h_edge.clear();
         r_edge.clear();
-        for(int i=0; i<t_ECGs->dieset.size(); ++i){
+        for(int i=0; i<m_ECGs[t_index]->dieset.size(); ++i){
             int h_in = rand()%2;
             if(h_in == 0){
                 if(h_set.size() >= h_die_num){
-                    v_set.insert(t_ECGs->dieset[i]);
+                    v_set.insert(m_ECGs[t_index]->dieset[i]);
                 }
                 else{
-                    h_set.insert(t_ECGs->dieset[i]);
+                    h_set.insert(m_ECGs[t_index]->dieset[i]);
                 }
             }
             else{
                 if(v_set.size() >= v_die_num){
-                    h_set.insert(t_ECGs->dieset[i]);
+                    h_set.insert(m_ECGs[t_index]->dieset[i]);
                 }
                 else{
-                    v_set.insert(t_ECGs->dieset[i]);
+                    v_set.insert(m_ECGs[t_index]->dieset[i]);
                 }
             }
         }
-        for(int i=0; i<t_ECGs->EMIBset.size(); ++i){
-            die_1 = t_ECGs->dieset[t_ECGs->EMIBset[i]->die_1];
-            die_2 = t_ECGs->dieset[t_ECGs->EMIBset[i]->die_2];
+        for(int i=0; i<m_ECGs[t_index]->EMIBset.size(); ++i){
+            die_1 = m_ECGs[t_index]->dieset[m_ECGs[t_index]->EMIBset[i]->die_1];
+            die_2 = m_ECGs[t_index]->dieset[m_ECGs[t_index]->EMIBset[i]->die_2];
             it_1 = h_set.find(die_1);
             it_2 = h_set.find(die_2);    
             if(it_1==h_set.end() && it_2 == h_set.end()){
                 
-                v_edge.push_back(t_ECGs->EMIBset[i]);
+                v_edge.push_back(m_ECGs[t_index]->EMIBset[i]);
             }
             else if(it_1 == h_set.end() || it_2 == h_set.end()){
-                r_edge.push_back(t_ECGs->EMIBset[i]);
+                r_edge.push_back(m_ECGs[t_index]->EMIBset[i]);
             }
             else{
-                h_edge.push_back(t_ECGs->EMIBset[i]);
+                h_edge.push_back(m_ECGs[t_index]->EMIBset[i]);
             }
         }
         r_edge_num = r_edge.size();
@@ -505,11 +507,11 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
         v_vec[i]->set_initial_index(i);
     }
     for(int i=0; i<h_edge.size(); ++i){
-        EMIB* sub_emib = new EMIB(t_ECGs->dieset[h_edge[i]->die_1]->initial_index(), t_ECGs->dieset[h_edge[i]->die_2]->initial_index(), h_edge[i]->overlap, h_edge[i]->distance, h_edge[i]->occupied);
+        EMIB* sub_emib = new EMIB(m_ECGs[t_index]->dieset[h_edge[i]->die_1]->initial_index(), m_ECGs[t_index]->dieset[h_edge[i]->die_2]->initial_index(), h_edge[i]->overlap, h_edge[i]->distance, h_edge[i]->occupied);
         h_edge[i] = sub_emib;
     }
     for(int i=0; i<v_edge.size(); ++i){
-        EMIB* sub_emib = new EMIB(t_ECGs->dieset[v_edge[i]->die_1]->initial_index(), t_ECGs->dieset[v_edge[i]->die_2]->initial_index(), v_edge[i]->overlap, v_edge[i]->distance, v_edge[i]->occupied);
+        EMIB* sub_emib = new EMIB(m_ECGs[t_index]->dieset[v_edge[i]->die_1]->initial_index(), m_ECGs[t_index]->dieset[v_edge[i]->die_2]->initial_index(), v_edge[i]->overlap, v_edge[i]->distance, v_edge[i]->occupied);
         v_edge[i] = sub_emib;
     }
     //cout << "HCG Node: " << endl;
@@ -547,43 +549,29 @@ void GlobalPlacer::m_initial_topology_generation(ECG* t_ECGs){
             h_ecg[i]->dieset[j]->set_initial_index(j);
         }
         m_maximum_spanning_tree(h_ecg[i]->dieset, h_ecg[i]->EMIBset, MST_root);
-        m_reduction_assignment(MST_root, h_abovenode, t_ECGs->h_edges);
-        for(int i=0; i<t_ECGs->h_edges.size(); ++i){
-            //cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
-        }
+        m_reduction_assignment(MST_root, h_abovenode, m_ECGs[t_index]->h_edges);
         h_roots.push_back(MST_root);
         h_abovenode.clear();
     }
     for(int i=0; i<h_roots.size(); ++i){
         virtual_h_root.bottom_nodes.push_back(h_roots[i]);
     }
-    m_random_assignment(&virtual_h_root, h_abovenode, t_ECGs->v_edges);
+    m_random_assignment(&virtual_h_root, h_abovenode, m_ECGs[t_index]->v_edges);
     for(int i=0; i<v_ecg.size(); ++i){
         for(int j=0; j<v_ecg[i]->dieset.size(); ++j){
             v_ecg[i]->dieset[j]->Reset();
             v_ecg[i]->dieset[j]->set_initial_index(j);
         }
         m_maximum_spanning_tree(v_ecg[i]->dieset, v_ecg[i]->EMIBset, MST_root);
-        m_reduction_assignment(MST_root, v_abovenode, t_ECGs->v_edges);
+        m_reduction_assignment(MST_root, v_abovenode, m_ECGs[t_index]->v_edges);
         v_roots.push_back(MST_root);
         v_abovenode.clear();
     }
     for(int i=0; i<v_roots.size(); ++i){
         virtual_v_root.bottom_nodes.push_back(v_roots[i]);
     }
-    m_random_assignment(&virtual_v_root, v_abovenode, t_ECGs->h_edges);
-    for(int i=0; i<t_ECGs->h_edges.size(); ++i){
-        //cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
-    }
-    m_graph_connection(&virtual_h_root, &virtual_v_root, t_ECGs->h_edges, t_ECGs->v_edges);
-    //cout << "VCG edge: " << endl;
-    for(int i=0; i<t_ECGs->v_edges.size(); ++i){
-        //cout << t_ECGs->v_edges[i][0] << "--->" << t_ECGs->v_edges[i][1] << endl;
-    }
-    //cout << "HCG edge: " << endl;
-    for(int i=0; i<t_ECGs->h_edges.size(); ++i){
-        //cout << t_ECGs->h_edges[i][0] << "--->" << t_ECGs->h_edges[i][1] << endl;
-    }
+    m_random_assignment(&virtual_v_root, v_abovenode, m_ECGs[t_index]->h_edges);
+    m_graph_connection(&virtual_h_root, &virtual_v_root, m_ECGs[t_index]->h_edges, m_ECGs[t_index]->v_edges);
 }
 
 
@@ -783,15 +771,38 @@ void GlobalPlacer::m_ECG_extraction(vector<die*>& t_dies, vector<EMIB*>& t_EMIBs
 }
 
 
-float m_check_similarity(TCG* t_tree1, TCG* t_tree2){
+float GlobalPlacer::m_check_similarity(TCG* t_tree1, TCG* t_tree2){
     int counter=0;
-    for(int i=0; i<t_tree1->m_TCGNodes.size(); ++i){
-        if(t_tree1->similarity_map_h[t_tree1->m_TCGNodes[i]] == t_tree2->similarity_map_h[t_tree1->m_TCGNodes[i]]){
-            counter++;
-        }
-        if(t_tree1->similarity_map_v[t_tree1->m_TCGNodes[i]] == t_tree2->similarity_map_v[t_tree1->m_TCGNodes[i]]){
+    for(int i=0; i<t_tree1->similarity_sequence.size(); ++i){
+        if(t_tree1->similarity_sequence[i] == t_tree2->similarity_sequence[i]){
             counter++;
         }
     }
-    return counter/(t_tree1->m_TCGNodes.size()*2);
+    return (float)counter/(float)(t_tree1->m_TCGNodes.size()*2);
+}
+
+bool GlobalPlacer::m_check_equal(TCG* t_tree1, vector<TCG*> t_trees){
+    int index=0;
+    vector<TCG*> subequal(t_trees);
+    vector<TCG*> temp;
+    while(index < 2*t_tree1->m_TCGNodes.size()){
+        for(int i=0; i<subequal.size(); ++i){
+            if(subequal[i]->similarity_sequence[index] == t_tree1->similarity_sequence[index]){
+                temp.push_back(subequal[i]);
+            }
+        }
+        if(temp.size() == 0){
+            return false;
+        }
+        else if(temp.size() > 0 && index < 2*t_tree1->m_TCGNodes.size()-1){
+            subequal.clear();
+            subequal = temp;
+            temp.clear();
+            index++;
+        }
+        else{
+            return true;
+        }
+    }
+    return false;
 }

@@ -76,12 +76,12 @@ class TCGNode{
         void           ResetCounter(){m_visited_counter = m_BottomNodes.size();};
         bool           is_visited(){return (m_visited_counter == 0 && m_is_visited == 1);}
         void           SetVisited();
-        float          SetBackupValue(float t_value);
         bool           is_parsed(){return m_is_parsed;};
         void           setParsed(bool t_parsed){m_is_parsed = t_parsed;};
         void           setInitialindex(int t_index){m_initial_index= t_index;};
         int            Initialindex(){return m_initial_index;};
         TCGNode*       copyself();
+        void           SetBackupValue(float t_value){m_backup_value = t_value;};
         vector<EMIBP*> EMIBPs;
         vector<EMIBNet*> EMIBs;
         TCGNode*       m_BaseNode;
@@ -295,9 +295,16 @@ class TCGGraph{
         TCGGraph(string t_direction_type):m_direction_type(t_direction_type){
             m_source = new TCGNode("source", 0);
             m_target = new TCGNode("target", 0);
+            m_source->setInitialindex(-1);
+            m_target->setInitialindex(-2);
             m_source->Setvalue(0);
             m_EMIBdepth = 0;
             legal = new Legalizer;
+        }
+        ~TCGGraph(){
+            delete m_source;
+            delete m_target;
+            delete legal;
         }
         void Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
         bool Overlap_Legalization();
@@ -307,7 +314,7 @@ class TCGGraph{
         void EMIBNetDerive(vector<TCGNode*>* t_TCGNodes);
         void ConstraintEdgeAdd(vector<vector<int>>& t_edges);
         void OriginalTraverse();
-        void DirectEdgeAdd();
+        void DirectEdgeAdd(bool t_initial_record);
         void RemoveEdge(TCGNode* t_below, TCGNode* t_upper);
         void AddEdge(TCGNode* t_below, TCGNode* t_upper);
         int EMIBnum(){
@@ -317,15 +324,19 @@ class TCGGraph{
             }
             return num/2;
         }
+        
         bool is_legal();
         void set_TCGNodes(vector<TCGNode*>* t_TCG){m_TCGNodes = t_TCG;};
-        float ValidRatio();
         TCGNode* source(){return m_source;};
         TCGNode* target(){return m_target;};
         vector<vector<EMIBNet*>> m_Nets;
         vector<TCGNode*>*        m_TCGNodes;
         TCGGraph*                m_dual_graph;
-        float                    m_valid_ratio;   
+        float                    m_valid_ratio;
+        int                      reduction_num;
+        int                      initial_reduction_num;
+        TCGNode* m_source;
+        TCGNode* m_target;   
     private:
         void     m_CoorGenerate();
         bool     m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs);
@@ -334,8 +345,6 @@ class TCGGraph{
         void     m_UpdateAbove(vector<TCGNode*>& t_nodes);
         Legalizer* legal;
         EMIBP*   m_EMIBPSource;
-        TCGNode* m_source;
-        TCGNode* m_target;
         string   m_direction_type;
         vector<EMIBP*> m_EMIBPvec;
         int      m_EMIBdepth;
@@ -355,23 +364,34 @@ class TCG{
             m_VCG->target()->SetDualNode(m_HCG->target());
             m_success = false;
         }
+        ~TCG(){
+            delete m_HCG;
+            delete m_VCG;
+            for(int i=0; i<m_TCGNodes.size(); ++i){
+                delete m_TCGNodes[i].first;
+                delete m_TCGNodes[i].second;
+            }
+        }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edges);
-        void test_Legalization();
+        bool Legalization();
+        void Initialize();
         void movement_rotation(int t_die);
         void movement_swap(int t_die1, int t_die2);
         void movement_reverse(int t_die);
         void movement_move(int t_die);
         void construct_similar_map();
+        bool DirectOverlap(int& t_invalid_num);
         vector<float> get_dies_coor(int t_die_index);
         TCG* copyself();
+        float ReductionRatio(){return (float)(m_HCG->reduction_num + m_VCG->reduction_num)/(float)(m_HCG->initial_reduction_num + m_VCG->initial_reduction_num);};
+        float LegalNodeRatio(){return (m_HCG->m_valid_ratio + m_VCG->m_valid_ratio)/2.0;};
         bool                m_success;
-        map<TCGNode*, TCGNode*> similarity_map_h;
-        map<TCGNode*, TCGNode*> similarity_map_v;
-        private: 
+        vector<int>        similarity_sequence;
+        vector<pair<TCGNode*, TCGNode*>> m_TCGNodes;
         TCGGraph* m_HCG;
         TCGGraph* m_VCG;
-        vector<pair<TCGNode*, TCGNode*>> m_TCGNodes;
+        private: 
         vector<TCGNode*>                 m_HCGNodes;
         vector<TCGNode*>                 m_VCGNodes;
         vector<pair<CommonTCGPin*, CommonTCGPin*>> m_common_nets;
@@ -384,6 +404,7 @@ class uf_comparator{
     public:
         bool operator()(uf_node* a, uf_node* b){return a->node < b->node;}
 };
+
 
 #endif
 

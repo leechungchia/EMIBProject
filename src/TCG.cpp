@@ -134,7 +134,7 @@ void TCGNode::SoftInitialize(){
     m_value = 0;
 }
 TCGNode* TCGNode::copyself(){
-    TCGNode* copied = TCGNode(m_code_name, m_initial_weight);
+    TCGNode* copied = new TCGNode(m_code_name, m_initial_weight);
     copied->set_r(m_rotated);
     copied->SetWeight(m_weight);
     copied->BottomNodes()->insert(m_BottomNodes.begin(), m_BottomNodes.end());
@@ -204,6 +204,7 @@ bool TCGGraph::Distance_Legalization(){
         for(int i=0; i< (*it)->DualNode()->EMIBs.size(); ++i){
             success = legal->DistanceLegalization((*it)->DualNode()->EMIBs[i]);
             if(!success){
+                m_valid_ratio -= 2.0*(legal_order.size() - counter)/(float)m_TCGNodes->size();
                 return 0;
             }
         }
@@ -299,7 +300,7 @@ bool TCGGraph::Overlap_Legalization(){
             //cout << "Legalization stage" << endl;
             legalization_success = legal->Legalization(bound_EMIBs[i]);
             if(!legalization_success){
-                if(counter - bound_EMIBs[i]->m_nodes.size() > 0)?(counter - bound_EMIBs[i]->m_nodes.size()):(0);
+                counter = (counter - bound_EMIBs[i]->m_nodes.size() > 0)?(counter - bound_EMIBs[i]->m_nodes.size()):(0);
                 m_valid_ratio = counter/m_TCGNodes->size();
                 return 0;
             }
@@ -482,12 +483,13 @@ void TCGGraph::ConstraintEdgeAdd(vector<vector<int>>& t_edges){
     m_source->ResetCounter();
     m_target->ResetCounter();
 }
-void TCGGraph::DirectEdgeAdd(){
+void TCGGraph::DirectEdgeAdd(bool t_initial_record){
     bool above_exist = true;
     TCGNode* current_above_node;
     TCGNode* current_node;
     m_source->DirectUpperNodes()->clear();
     m_target->DirectBottomNodes()->clear();
+    reduction_num = 0;
     for(auto it=m_TCGNodes->begin(); it!=m_TCGNodes->end(); ++it){
         (*it)->DirectUpperNodes()->clear();
         (*it)->DirectBottomNodes()->clear();
@@ -506,6 +508,14 @@ void TCGGraph::DirectEdgeAdd(){
             if(above_exist){
                 current_node->DirectUpperNodes()->insert(current_above_node);
                 current_above_node->DirectBottomNodes()->insert(current_node);
+                for(int i=0; i<m_EMIBInf->size(); ++i){
+                    if(m_TCGNodes->at(m_EMIBInf->at(i).node_1) == current_node && m_TCGNodes->at(m_EMIBInf->at(i).node_2) == current_above_node){
+                        reduction_num++;
+                    }
+                    else if(m_TCGNodes->at(m_EMIBInf->at(i).node_2) == current_node && m_TCGNodes->at(m_EMIBInf->at(i).node_1) == current_above_node){
+                        reduction_num++;
+                    }
+                }
             }
         }
     }
@@ -523,6 +533,9 @@ void TCGGraph::DirectEdgeAdd(){
             current_above_node->DirectBottomNodes()->insert(m_source);
         }
     }
+    if(t_initial_record){
+        initial_reduction_num = reduction_num;
+    }
 }
 void TCGGraph::RemoveEdge(TCGNode* t_below, TCGNode* t_upper){
     t_below->UpperNodes()->erase(t_upper);
@@ -534,7 +547,6 @@ void TCGGraph::AddEdge(TCGNode* t_below, TCGNode* t_upper){
     t_below->UpperNodes()->insert(t_upper);
     t_upper->BottomNodes()->insert(t_below);
 }
-
 
 
 
@@ -806,9 +818,6 @@ bool Legalizer::DistanceLegalization(EMIBNet* t_EMIBNet){
         return 0;
     }
 }
-bool Legalizer::EMIBOverlapCheck(){
-    return
-}
 
 
 
@@ -833,9 +842,9 @@ TCG* TCG::copyself(){
 }
 void TCG::GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edges){
     m_HCG->ConstraintEdgeAdd(t_h_edges);
-    m_HCG->DirectEdgeAdd();
+    m_HCG->DirectEdgeAdd(1);
     m_VCG->ConstraintEdgeAdd(t_v_edges);
-    m_VCG->DirectEdgeAdd();
+    m_VCG->DirectEdgeAdd(1);
     m_HCG->EMIBNetDerive(&m_HCGNodes);
     m_VCG->EMIBNetDerive(&m_VCGNodes);
     for(int i=0; i<m_HCGNodes.size(); ++i){
@@ -853,6 +862,12 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<floa
     string node_name_h;
     string node_name_v;
     string pin_name;
+    similarity_sequence.resize(2*t_NodeVec.size());
+    for(int i=0; i<m_TCGNodes.size(); ++i){
+        delete m_TCGNodes[i].first;
+        delete m_TCGNodes[i].second;
+    }
+    m_TCGNodes.clear();
     for(int i=0; i<t_NodeVec.size(); ++i){
         node_name_h = "TCGNodeH"+to_string(i);
         node_name_v = "TCGNodeV"+to_string(i);
@@ -893,8 +908,7 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<floa
     }
     //cout << "Read TCG EMIB Inf" << endl;
 }
-void TCG::test_Legalization(){
-    //movement_swap(6,7);
+bool TCG::Legalization(){
     int die1;
     int die2;
     int move;
@@ -908,27 +922,21 @@ void TCG::test_Legalization(){
     v_overlap_success = m_VCG->Overlap_Legalization();
     h_success = (h_overlap_success)?("success"):("false");
     v_success = (v_overlap_success)?("success"):("false");
-    cout << "iteration "<< i <<" HCG Overlap Legalization: " << h_success << endl;
-    cout << "iteration "<< i <<" VCG Overlap Legalization: " << v_success << endl;
+    cout <<" HCG Overlap Legalization: " << h_success << endl;
+    cout <<" VCG Overlap Legalization: " << v_success << endl;
     if(h_overlap_success && v_overlap_success){
         h_distance_success = m_HCG->Distance_Legalization();
         v_distance_success = m_VCG->Distance_Legalization();
         h_success = (h_distance_success)?("success"):("false");
         v_success = (v_distance_success)?("success"):("false");
-
-        cout << "iteration " << i <<" HCG Distance Legalization: " << h_success << endl;
-        cout << "iteration " << i <<" VCG Distance Legalization: " << v_success << endl;
+        cout << " HCG Distance Legalization: " << h_success << endl;
+        cout << " VCG Distance Legalization: " << v_success << endl;
         if(h_distance_success && v_distance_success){
-            m_success = true;
-            break;
+            construct_similar_map();
+            return true;
         }
-    }  
-    
-    
-    //m_HCG->OriginalTraverse();
-    //m_VCG->OriginalTraverse();
-    
-    
+    }
+    return  false;
 }
 vector<float> TCG::get_dies_coor(int t_die_index){
 
@@ -1155,8 +1163,8 @@ void TCG::movement_reverse(int t_die){
             }
         }
     }
-    m_HCG->DirectEdgeAdd();
-    m_VCG->DirectEdgeAdd();
+    m_HCG->DirectEdgeAdd(0);
+    m_VCG->DirectEdgeAdd(0);
     /*
     for(int i=0;i<m_HCGNodes.size(); ++i){
         cout << m_HCGNodes[i]->CodeName() << endl;
@@ -1298,15 +1306,22 @@ void TCG::movement_move(int t_die){
             }
         }
     }
-    m_HCG->DirectEdgeAdd();
-    m_VCG->DirectEdgeAdd();
+    m_HCG->DirectEdgeAdd(0);
+    m_VCG->DirectEdgeAdd(0);
     m_HCG->EMIBNetDerive(&m_HCGNodes);
     m_VCG->EMIBNetDerive(&m_VCGNodes);
 }
 void TCG::construct_similar_map(){
     for(int i=0; i<m_TCGNodes.size(); ++i){
-        similar_map_h[m_TCGNodes[i].first] = m_TCGNodes[i].first->m_BaseNode;
-        similar_map_v[m_TCGNodes[i].first] = m_TCGNodes[i].first->m_BaseNode;
+        similarity_sequence[2*m_TCGNodes[i].first->Initialindex()] = m_TCGNodes[i].first->m_BaseNode->Initialindex();
+        similarity_sequence[2*m_TCGNodes[i].second->Initialindex()+1] = m_TCGNodes[i].second->m_BaseNode->Initialindex();
     }
 }
-
+void TCG::Initialize(){
+    for(int i=0; i<m_TCGNodes.size(); ++i){
+        m_TCGNodes[i].first->HardInitialize();
+        m_TCGNodes[i].second->HardInitialize();
+    }
+    similarity_sequence.clear();
+    similarity_sequence.resize(2*m_TCGNodes.size());
+}

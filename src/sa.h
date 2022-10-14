@@ -19,7 +19,11 @@
 #include <iterator>
 #include "bstar.h"
 #include "TCG.h"
+//#include "globalplacer.h"
 
+using namespace std;
+
+class GlobalPlacer;
 class cost_comparator;
 class SA
 {
@@ -53,11 +57,20 @@ public:
     m_di_p      = 0.4;
     m_rotate_p  = 0.4;
     //// phase 1 parameter  ////
+    m_initial_temperature_1 = 0.1;
     m_iternum   = 10000;
     m_similarity_bound    = 0.8;
     m_reduction_para      = 0.9;
     m_illegal_para        = 0.1;
-    m_EMIB_overlap_para   = 0.01; 
+    m_EMIB_overlap_para   = 0.01;
+    m_buffer              = 100;
+    m_group_num           = 0;
+    m_topology_num        = 0;
+    //// phase 2 parameter ////
+    m_initial_temperature_2 = 0.1;
+    m_iternum_2             = 10000;
+    m_similarity_bound_2    = 0.9;
+    m_buffer_2              = 100;
     }
     void InputData(vector<pair<float, float>> t_DieVec, 
                 vector<pair<pair<float, float>, pair<float, float>>> t_CommonNetVec, 
@@ -74,7 +87,7 @@ public:
             m_best_area = m_BstarTree->area();
             m_area_base = m_BstarTree->area();
             m_hpwl_base = m_BstarTree->HPWL();
-            m_best_cost = get_current_cost();
+            //m_best_cost = get_current_cost();
             cout << "Construct B*-tree successfully" << endl;
         }
     }
@@ -86,12 +99,12 @@ public:
                 string t_structure){
             cout << "TCG mode" << endl;
             TCG* new_TCG = new TCG();
-            m_TCGs.push_back(new_TCG);
+            base_TCG = new_TCG;
             m_size = t_DieVec.size();
             m_time_upperbound = m_k*t_DieVec.size();
             m_structure = t_structure;
-            m_TCGs[0]->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
-            m_TCGs[0]->GetTCGEdge(t_h_edges, t_v_edges);
+            base_TCG->TCGConstruct(t_DieVec, t_EMIBNetVec, t_MappingEMIBToDie);
+            base_TCG->GetTCGEdge(t_h_edges, t_v_edges);
             //m_TCG->test_Legalization();
             cout << "TCGNode Constructed successfully" << endl;
     }
@@ -108,10 +121,15 @@ public:
     float get_current_best_cost();
     void  start();
     void  phase1_start();
+    void  phase2_start();
     void  find_legal_solution(int t_num);
-    vector<vector<float>> get_dies_inf(int t_index);
-    vector<TCG*>  m_TCGs;
+    void  set_placer(GlobalPlacer* t_placer, int t_index){placer = t_placer;ECG_index=t_index;};
+    vector<vector<float>> get_dies_inf(int t_index_1, int t_index_2);
+    vector<vector<TCG*>>  m_TCGs;
+    TCG* base_TCG;
     vector<set<pair<TCG*, float>, cost_comparator>> solution_set;
+    GlobalPlacer* placer;
+    int           ECG_index;
 private:
     //// data structure ////
     BstarTree*    m_BstarTree;
@@ -146,11 +164,23 @@ private:
     float         m_di_p;
     float         m_rotate_p;
     //// phase 1 parameter ////
+    float         m_initial_temperature_1;
     int           m_iternum;
     float         m_similarity_bound;
     float         m_reduction_para;
     float         m_illegal_para;
     float         m_EMIB_overlap_para;
+    int           m_group_num;
+    int           m_topology_num;
+    int           m_buffer;
+    //// phase 2 parameter ////
+    float         m_initial_temperature_2;
+    int           m_iternum_2;
+    float         m_similarity_bound_2;
+    int           m_buffer_2;
+    float         m_x_para;
+    float         m_y_para;
+    float         m_delta_para;
     bool  m_chosen_probability(float diff, float current_temperature);
     void  m_bstar_move();
     void  m_bstar_start();
