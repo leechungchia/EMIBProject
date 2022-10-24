@@ -11,6 +11,7 @@
 #include <vector>
 #include <stdio.h>
 #include <time.h>
+#include <cstdlib>
 #include <iostream>
 #include <cmath>
 #include <iostream>
@@ -33,7 +34,7 @@ class Legalizer;
 class TCGNode{
     public:
         TCGNode(string t_code_name, float t_weight):
-        m_code_name(t_code_name), m_initial_weight(t_weight), m_weight(t_weight), m_value(-1), m_is_visited(1), m_depth(-1), m_visited_counter(0), m_rotated(0){}
+        m_code_name(t_code_name), m_initial_weight(t_weight), m_weight(t_weight), m_value(0), m_is_visited(1), m_depth(-1), m_visited_counter(0), m_rotated(0), m_is_parsed(0){}
         void   ValueGenerate();
         bool   ValueUpdate(queue<TCGNode*>& t_nodes);
         bool   ValueUpdate();
@@ -73,7 +74,7 @@ class TCGNode{
         void           ResetEMIBCounter(){m_EMIBCounter = EMIBs.size();};
         void           decreaseEMIBCounter(int t_num){m_EMIBCounter-=t_num;};
         void           DecreaseCounter(){m_visited_counter -= 1;};
-        void           ResetCounter(){m_visited_counter = m_BottomNodes.size();};
+        void           ResetCounter(){m_visited_counter = m_DirectBottomNodes.size();};
         bool           is_visited(){return (m_visited_counter == 0 && m_is_visited == 1);}
         void           SetVisited();
         bool           is_parsed(){return m_is_parsed;};
@@ -81,10 +82,15 @@ class TCGNode{
         void           setInitialindex(int t_index){m_initial_index= t_index;};
         int            Initialindex(){return m_initial_index;};
         TCGNode*       copyself();
-        void           SetBackupValue(float t_value){m_backup_value = t_value;};
+        void           SetBackupValue(float t_value, TCGNode* t_node){m_backup_value = t_value;m_backup_basenode=t_node;};
+        float          BackupValue(){return m_backup_value;};
+        void           SetInputIndex(int t_index){m_input_index = t_index;};
+        float          InputIndex(){return m_input_index;};
         vector<EMIBP*> EMIBPs;
         vector<EMIBNet*> EMIBs;
         TCGNode*       m_BaseNode;
+        TCGNode*       m_backup_basenode;
+        TCGNode*       self_copied;
     private:
         bool             m_above_exist(TCGNode* t_node); 
         string           m_code_name;
@@ -108,7 +114,8 @@ class TCGNode{
         bool             m_is_visited;
         int              m_EMIBCounter;
         bool             m_is_parsed;
-        int              m_initial_index;   
+        int              m_initial_index;
+        int              m_input_index;   
 };
 
 class EMIBP {
@@ -157,6 +164,7 @@ class EMIBNet {
         string CodeName(){return m_code_name;};
         float OverlapValue(){return m_overlap;};
         float DistanceValue(){return m_distance;};
+        float OccupiedValue(){return m_occupied;};
         TCGNode* node1(){return m_node_1;};
         TCGNode* node2(){return m_node_2;};
         TCGNode* dualnode(TCGNode* t_node){return (t_node == m_node_1)?m_node_2:m_node_1;};
@@ -305,8 +313,18 @@ class TCGGraph{
             delete m_source;
             delete m_target;
             delete legal;
+            for(int i=0; i<m_Nets.size(); ++i){
+                for(int j=0; j<m_Nets[i].size(); ++j){
+                    delete m_Nets[i][j];
+                }
+            }
+            for(int i=0; i<m_EMIBPvec.size(); ++i){
+                delete m_EMIBPvec[i];
+            }
+            m_Nets.clear();
+            m_EMIBPvec.clear();
         }
-        void Initialize(vector<TCGNode*>* t_TCGNodes, bool t_is_activated);
+        void Initialize();
         bool Overlap_Legalization();
         bool Distance_Legalization();
         bool state(){return (m_direction_type == "VCG")?1:0;};
@@ -324,19 +342,21 @@ class TCGGraph{
             }
             return num/2;
         }
-        
         bool is_legal();
-        void set_TCGNodes(vector<TCGNode*>* t_TCG){m_TCGNodes = t_TCG;};
+        void set_TCGNodes(vector<TCGNode*>* t_TCG){m_TCGNodes = t_TCG;};\
+        TCGGraph* copyself();
         TCGNode* source(){return m_source;};
         TCGNode* target(){return m_target;};
         vector<vector<EMIBNet*>> m_Nets;
         vector<TCGNode*>*        m_TCGNodes;
+        vector<TCGNode*>         m_dummy_sources;
         TCGGraph*                m_dual_graph;
         float                    m_valid_ratio;
         int                      reduction_num;
         int                      initial_reduction_num;
         TCGNode* m_source;
-        TCGNode* m_target;   
+        TCGNode* m_target;
+        vector<EMIBP*> m_EMIBPvec;   
     private:
         void     m_CoorGenerate();
         bool     m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EMIBPs);
@@ -346,7 +366,7 @@ class TCGGraph{
         Legalizer* legal;
         EMIBP*   m_EMIBPSource;
         string   m_direction_type;
-        vector<EMIBP*> m_EMIBPvec;
+        
         int      m_EMIBdepth;
         vector<EMIBInf>* m_EMIBInf;
 };
@@ -371,6 +391,7 @@ class TCG{
                 delete m_TCGNodes[i].first;
                 delete m_TCGNodes[i].second;
             }
+            m_TCGNodes.clear();
         }
         void TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<float>>& t_PinVec, vector<pair<int, int>>& t_PinNodeMap);
         void GetTCGEdge(vector<vector<int>> t_h_edges, vector<vector<int>> t_v_edges);
@@ -383,14 +404,19 @@ class TCG{
         void construct_similar_map();
         bool DirectOverlap(int& t_invalid_num);
         vector<float> get_dies_coor(int t_die_index);
-        TCG* copyself();
+        TCG* copyself(bool t_complete);
         float ReductionRatio(){return (float)(m_HCG->reduction_num + m_VCG->reduction_num)/(float)(m_HCG->initial_reduction_num + m_VCG->initial_reduction_num);};
-        float LegalNodeRatio(){return (m_HCG->m_valid_ratio + m_VCG->m_valid_ratio)/2.0;};
+        float LegalNodeRatio(){return (float)(m_HCG->m_valid_ratio + m_VCG->m_valid_ratio)/2.0;};
+        void  GetCoorInf(vector<pair<pair<float, float>, int>>& t_coor);
+        void insert_dummy_source(vector<pair<float, float>> t_sources, float t_base, vector<vector<float>>& t_new_horizon);
+        void erase_dummy_source();
+        void BackUp();
         bool                m_success;
         vector<int>        similarity_sequence;
         vector<pair<TCGNode*, TCGNode*>> m_TCGNodes;
         TCGGraph* m_HCG;
         TCGGraph* m_VCG;
+        vector<TCGNode*> v_backup;
         private: 
         vector<TCGNode*>                 m_HCGNodes;
         vector<TCGNode*>                 m_VCGNodes;

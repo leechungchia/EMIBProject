@@ -1,6 +1,30 @@
 #include "TCG.h"
+bool bool_overlap(float t_min_1, float t_max_1, float t_min_2, float t_max_2){
+    if(t_max_2 >= t_max_1){
+        if(t_min_1 >= t_min_2){
+            return true;
+        }
+        else if(t_min_2 <= t_max_1){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    else{
+        if(t_min_2 >= t_min_1){
+            return true;
+        }
+        else if(t_min_1 <= t_max_2){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+}
 void TCGNode::SetVisited(){
-    for(auto it=m_UpperNodes.begin(); it != m_UpperNodes.end(); ++it){
+    for(auto it=m_DirectUpperNodes.begin(); it != m_DirectUpperNodes.end(); ++it){
         (*it)->DecreaseCounter();
     }
 }
@@ -10,7 +34,7 @@ void TCGNode::ValueGenerate(){
         float height      = 0;
         for(auto it=DirectBottomNodes()->begin(); it != DirectBottomNodes()->end(); ++it){
             height = (*it)->value() + (*it)->weight();
-            if(height > current_max){
+            if(height >= current_max){
                 current_max = height;
                 m_BaseNode = (*it);
             }
@@ -27,7 +51,7 @@ bool TCGNode::ValueUpdate(queue<TCGNode*>& t_nodes){
     TCGNode* current_max = (*m_BottomNodes.begin());
     for(auto it=m_DirectBottomNodes.begin(); it != m_DirectBottomNodes.end(); ++it){
         height = (*it)->value() + (*it)->weight();
-        if(height > m_value){
+        if(height >= m_value){
             m_value = height;
             m_BaseNode = (*it);
             revised = 1;
@@ -50,10 +74,12 @@ bool TCGNode::ValueUpdate(){
     float height = 0;
     bool revised = 0;
     TCGNode* current_max = (*m_DirectBottomNodes.begin());
+    m_BaseNode           = (*m_DirectBottomNodes.begin());
     for(auto it=m_DirectBottomNodes.begin(); it != m_DirectBottomNodes.end(); ++it){
         height = (*it)->value() + (*it)->weight();
-        if(height > m_value){
+        if(height >= m_value){
             m_value = height;
+            current_max = (*it);
             m_BaseNode = (*it);
             revised = 1;
         }
@@ -120,7 +146,7 @@ void TCGNode::HardInitialize(){
     m_UpperNodes.clear();
     m_BottomNodes.clear();
     m_weight = m_initial_weight;
-    m_value = -1;
+    m_value = 0;
     m_BaseNode = 0;
     m_depth = -1;
     m_rotated = 0;
@@ -137,11 +163,13 @@ TCGNode* TCGNode::copyself(){
     TCGNode* copied = new TCGNode(m_code_name, m_initial_weight);
     copied->set_r(m_rotated);
     copied->SetWeight(m_weight);
-    copied->BottomNodes()->insert(m_BottomNodes.begin(), m_BottomNodes.end());
-    copied->UpperNodes()->insert(m_UpperNodes.begin(), m_UpperNodes.end());
-    copied->DirectBottomNodes()->insert(m_DirectBottomNodes.begin(), m_DirectBottomNodes.end());
-    copied->DirectUpperNodes()->insert(m_DirectUpperNodes.begin(), m_DirectUpperNodes.end());
-    copied->SetBackupValue(m_value);
+    copied->SetInitialWeight(m_initial_weight);
+    copied->SetCodeName(m_code_name);
+    copied->setInitialindex(m_initial_index);
+    copied->SetInputIndex(m_input_index);
+    copied->Setvalue(m_value);
+    self_copied = copied;
+    copied->self_copied = this;
     return copied;
 }
 
@@ -204,7 +232,7 @@ bool TCGGraph::Distance_Legalization(){
         for(int i=0; i< (*it)->DualNode()->EMIBs.size(); ++i){
             success = legal->DistanceLegalization((*it)->DualNode()->EMIBs[i]);
             if(!success){
-                m_valid_ratio -= 2.0*(legal_order.size() - counter)/(float)m_TCGNodes->size();
+                m_valid_ratio -= (float)(legal_order.size() - counter)/(float)m_TCGNodes->size();
                 return 0;
             }
         }
@@ -221,6 +249,7 @@ bool TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EM
     }
     while(traverseQueue.size() != 0){
         current_node = traverseQueue.front();
+        //cout << current_node->CodeName() << endl;
         traverseQueue.pop();
         if(current_node->EMIBCounter() > 0){
             newToppestNodes.insert(current_node);
@@ -232,6 +261,7 @@ bool TCGGraph::m_TraverseToBound(vector<TCGNode*>& t_bound, vector<EMIBP*>& t_EM
                     (*it)->ValueGenerate();
                     (*it)->setParsed(true);
                     traverseQueue.push((*it));
+                    //cout << "push:" << (*it)->CodeName() << endl; 
                 }
             }
         }
@@ -301,7 +331,7 @@ bool TCGGraph::Overlap_Legalization(){
             legalization_success = legal->Legalization(bound_EMIBs[i]);
             if(!legalization_success){
                 counter = (counter - bound_EMIBs[i]->m_nodes.size() > 0)?(counter - bound_EMIBs[i]->m_nodes.size()):(0);
-                m_valid_ratio = counter/m_TCGNodes->size();
+                m_valid_ratio = (float)counter/(float)m_TCGNodes->size();
                 return 0;
             }
 
@@ -312,20 +342,14 @@ bool TCGGraph::Overlap_Legalization(){
         bound_success = m_TraverseToBound(bound, bound_EMIBs);
     }
     if(!bound_success){
-        cout << "no connection violation" << endl;
         m_EMIBdepth = 0;
         m_valid_ratio = 0;
         return 0;
     }
     float overlap;
-    /*for(int i=0; i<m_Nets.size(); ++i){
-        for(int j=0; j<m_Nets[i].size(); ++j){
-            cout << m_Nets[i][j]->isOverlapValid(overlap) << endl;
-            cout << m_Nets[i][j]->node1()->CodeName() << ":::" << m_Nets[i][j]->node2()->CodeName() << endl; 
-        }
-    }*/
     m_EMIBdepth = 0;
-    m_valid_ratio = counter/m_TCGNodes->size();
+    m_target->ValueUpdate();
+    m_valid_ratio = (float)counter/(float)m_TCGNodes->size();
     return 1;
 }
 uf_node* TCGGraph::m_findroot(uf_node* t_node){
@@ -430,6 +454,7 @@ void  TCGGraph::m_unionfind(vector<TCGNode*>& t_nodes, vector<vector<EMIBNet*>>&
     for(auto it=uf_subnodes.begin(); it!=uf_subnodes.end(); ++it){
         delete (*it);
     }
+    uf_subnodes.clear();
 }
 void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
     m_Nets.clear();
@@ -448,6 +473,10 @@ void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
         t_TCGNodes->at(i)->EMIBs.clear();
         t_TCGNodes->at(i)->EMIBPs.clear();
     }
+    for(int i=0; i<m_EMIBPvec.size(); ++i){
+        delete m_EMIBPvec[i];
+    }
+    m_EMIBPvec.clear();
     for(int i=0; i<m_EMIBInf->size(); ++i){
         node_1 = t_TCGNodes->at(m_EMIBInf->at(i).node_1);
         node_2 = t_TCGNodes->at(m_EMIBInf->at(i).node_2);
@@ -466,7 +495,6 @@ void TCGGraph::EMIBNetDerive(vector<TCGNode*>* t_TCGNodes){
     }
 }
 void TCGGraph::ConstraintEdgeAdd(vector<vector<int>>& t_edges){
-    cout << "TCG edge num: " << t_edges.size() << endl;
     for(int i=0; i<t_edges.size(); ++i){
         m_TCGNodes->at(t_edges[i][0])->UpperInsert(m_TCGNodes->at(t_edges[i][1]));
         m_TCGNodes->at(t_edges[i][1])->BottomInsert(m_TCGNodes->at(t_edges[i][0]));
@@ -534,7 +562,7 @@ void TCGGraph::DirectEdgeAdd(bool t_initial_record){
         }
     }
     if(t_initial_record){
-        initial_reduction_num = reduction_num;
+        initial_reduction_num = m_EMIBInf->size();
     }
 }
 void TCGGraph::RemoveEdge(TCGNode* t_below, TCGNode* t_upper){
@@ -547,7 +575,13 @@ void TCGGraph::AddEdge(TCGNode* t_below, TCGNode* t_upper){
     t_below->UpperNodes()->insert(t_upper);
     t_upper->BottomNodes()->insert(t_below);
 }
-
+void TCGGraph::Initialize(){
+    m_source->SoftInitialize();
+    m_target->SoftInitialize();
+    for(int i=0; i<m_TCGNodes->size(); ++i){
+        m_TCGNodes->at(i)->SoftInitialize();
+    }
+}
 
 
 
@@ -702,7 +736,7 @@ bool Legalizer::BranchUpdate(EMIBNet* t_EMIBNet, TCGNode* t_high, TCGNode* t_low
         new_UpdateNodes.clear();
     }
     if(!t_EMIBNet->isOverlapValid(overlap)){
-        cout << "unlegalizable branch: " << t_EMIBNet->node1()->CodeName() << ","  << t_EMIBNet->node2()->CodeName() << endl;
+        //cout << "unlegalizable branch: " << t_EMIBNet->node1()->CodeName() << ","  << t_EMIBNet->node2()->CodeName() << endl;
         return 0;
     }
     else{
@@ -715,7 +749,7 @@ bool Legalizer::BranchUpdate(EMIBNet* t_EMIBNet, TCGNode* t_high, TCGNode* t_low
             for(auto it=t_newWrongSet.begin(); it!=t_newWrongSet.end(); ++it){
                 (*it)->LowHighDerive(high, low);
                 if(high == t_target.first && low == t_target.second || (high == t_target.second && low == t_target.first)){
-                    cout << "unlegalizable EMIBP: " << t_EMIBNet->node1()->CodeName() << ","  << t_EMIBNet->node2()->CodeName() << endl;
+                    //cout << "unlegalizable EMIBP: " << t_EMIBNet->node1()->CodeName() << ","  << t_EMIBNet->node2()->CodeName() << endl;
                     return 0;
                 }
             }
@@ -821,10 +855,14 @@ bool Legalizer::DistanceLegalization(EMIBNet* t_EMIBNet){
 
 
 
-TCG* TCG::copyself(){
-    TCG* copied;
+TCG* TCG::copyself(bool t_complete){
+    TCG* copied = new TCG();
     TCGNode* copied_h;
     TCGNode* copied_v;
+    m_HCG->source()->self_copied = copied->m_HCG->source();
+    m_VCG->source()->self_copied = copied->m_VCG->source();
+    m_HCG->target()->self_copied = copied->m_HCG->target();
+    m_VCG->target()->self_copied = copied->m_VCG->target();
     for(int i=0; i<m_TCGNodes.size(); ++i){
         copied_h = m_TCGNodes[i].first->copyself();
         copied_v = m_TCGNodes[i].second->copyself();
@@ -834,8 +872,106 @@ TCG* TCG::copyself(){
         copied->m_HCGNodes.push_back(copied_h);
         copied->m_VCGNodes.push_back(copied_v);
     }
+    for(int i=0; i<m_HCGNodes.size(); ++i){
+        for(auto it=m_HCGNodes[i]->BottomNodes()->begin(); it!=m_HCGNodes[i]->BottomNodes()->end(); ++it){
+            m_HCGNodes[i]->self_copied->BottomNodes()->insert((*it)->self_copied);
+        }
+        for(auto it=m_HCGNodes[i]->UpperNodes()->begin(); it!=m_HCGNodes[i]->UpperNodes()->end(); ++it){
+            m_HCGNodes[i]->self_copied->UpperNodes()->insert((*it)->self_copied);
+        }
+        for(auto it=m_HCGNodes[i]->DirectBottomNodes()->begin(); it!=m_HCGNodes[i]->DirectBottomNodes()->end(); ++it){
+            m_HCGNodes[i]->self_copied->DirectBottomNodes()->insert((*it)->self_copied);
+        }
+        for(auto it=m_HCGNodes[i]->DirectUpperNodes()->begin(); it!=m_HCGNodes[i]->DirectUpperNodes()->end(); ++it){
+            m_HCGNodes[i]->self_copied->DirectUpperNodes()->insert((*it)->self_copied);
+        }
+    }
+    for(int i=0; i<m_VCGNodes.size(); ++i){
+        for(auto it=m_VCGNodes[i]->BottomNodes()->begin(); it!=m_VCGNodes[i]->BottomNodes()->end(); ++it){
+            m_VCGNodes[i]->self_copied->BottomNodes()->insert((*it)->self_copied);
+        }
+        for(auto it=m_VCGNodes[i]->UpperNodes()->begin(); it!=m_VCGNodes[i]->UpperNodes()->end(); ++it){
+            m_VCGNodes[i]->self_copied->UpperNodes()->insert((*it)->self_copied);
+        }
+        for(auto it=m_VCGNodes[i]->DirectBottomNodes()->begin(); it!=m_VCGNodes[i]->DirectBottomNodes()->end(); ++it){
+            m_VCGNodes[i]->self_copied->DirectBottomNodes()->insert((*it)->self_copied);
+        }
+        for(auto it=m_VCGNodes[i]->DirectUpperNodes()->begin(); it!=m_VCGNodes[i]->DirectUpperNodes()->end(); ++it){
+            m_VCGNodes[i]->self_copied->DirectUpperNodes()->insert((*it)->self_copied);
+        }
+    }
+    for(auto it=m_HCG->source()->UpperNodes()->begin(); it!=m_HCG->source()->UpperNodes()->end(); ++it){
+        copied->m_HCG->source()->UpperNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_HCG->source()->DirectUpperNodes()->begin(); it!=m_HCG->source()->DirectUpperNodes()->end(); ++it){
+        copied->m_HCG->source()->DirectUpperNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_HCG->target()->BottomNodes()->begin(); it!=m_HCG->target()->BottomNodes()->end(); ++it){
+        copied->m_HCG->target()->BottomNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_HCG->target()->DirectBottomNodes()->begin(); it!=m_HCG->target()->DirectBottomNodes()->end(); ++it){
+        copied->m_HCG->target()->DirectBottomNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_VCG->source()->UpperNodes()->begin(); it!=m_VCG->source()->UpperNodes()->end(); ++it){
+        copied->m_VCG->source()->UpperNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_VCG->source()->DirectUpperNodes()->begin(); it!=m_VCG->source()->DirectUpperNodes()->end(); ++it){
+        copied->m_VCG->source()->DirectUpperNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_VCG->target()->BottomNodes()->begin(); it!=m_VCG->target()->BottomNodes()->end(); ++it){
+        copied->m_VCG->target()->BottomNodes()->insert((*it)->self_copied);
+    }
+    for(auto it=m_VCG->target()->DirectBottomNodes()->begin(); it!=m_VCG->target()->DirectBottomNodes()->end(); ++it){
+        copied->m_VCG->target()->DirectBottomNodes()->insert((*it)->self_copied);
+    }
     for(int j=0; j<m_EMIBInfs.size(); ++j){
         copied->m_EMIBInfs.push_back(m_EMIBInfs[j]);
+    }
+    copied->m_HCG->SetEMIBInf(&copied->m_EMIBInfs);
+    copied->m_VCG->SetEMIBInf(&copied->m_EMIBInfs);
+    copied->m_HCG->m_TCGNodes = &copied->m_HCGNodes;
+    copied->m_VCG->m_TCGNodes = &copied->m_VCGNodes;
+    copied->similarity_sequence.resize(2*m_TCGNodes.size(), -1);
+    EMIBNet* current_net;
+    EMIBNet* new_net;
+    for(int i=0; i<m_HCG->m_Nets.size(); ++i){
+        vector<EMIBNet*> temp;
+        for(int j=0; j<m_HCG->m_Nets[i].size(); ++j){
+            current_net = m_HCG->m_Nets[i][j];
+            new_net = new EMIBNet(current_net->CodeName(), current_net->node1()->self_copied, current_net->node2()->self_copied,
+                                    current_net->OverlapValue(), current_net->DistanceValue(), current_net->OccupiedValue());
+            copied->m_HCG->m_TCGNodes->at(i)->EMIBs.push_back(new_net);
+            temp.push_back(new_net);
+        }
+        copied->m_HCG->m_Nets.push_back(temp);
+    }
+    for(int i=0; i<m_VCG->m_Nets.size(); ++i){
+        vector<EMIBNet*> temp;
+        for(int j=0; j<m_VCG->m_Nets[i].size(); ++j){
+            current_net = m_VCG->m_Nets[i][j];
+            new_net = new EMIBNet(current_net->CodeName(), current_net->node1()->self_copied, current_net->node2()->self_copied,
+                                    current_net->OverlapValue(), current_net->DistanceValue(), current_net->OccupiedValue());
+            copied->m_VCG->m_TCGNodes->at(i)->EMIBs.push_back(new_net);
+            temp.push_back(new_net);
+        }
+        copied->m_VCG->m_Nets.push_back(temp);
+    }
+    for(int i=0; i<copied->m_TCGNodes.size(); ++i){
+        copied->m_TCGNodes[i].first->SoftInitialize();
+        copied->m_TCGNodes[i].second->SoftInitialize();
+    }
+    copied->m_HCG->target()->Setvalue(m_HCG->target()->value());
+    copied->m_VCG->target()->Setvalue(m_VCG->target()->value());
+    copied->m_HCG->initial_reduction_num = m_HCG->initial_reduction_num;
+    copied->m_VCG->initial_reduction_num = m_VCG->initial_reduction_num;
+    if(t_complete){
+        for(int i=0; i<m_TCGNodes.size(); ++i){
+            m_TCGNodes[i].first->self_copied->m_BaseNode = m_TCGNodes[i].first->m_BaseNode->self_copied;
+            m_TCGNodes[i].second->self_copied->m_BaseNode = m_TCGNodes[i].second->m_BaseNode->self_copied;
+            copied->similarity_sequence = similarity_sequence;
+            copied->m_TCGNodes[i].first->Setvalue(m_TCGNodes[i].first->value());
+            copied->m_TCGNodes[i].second->Setvalue(m_TCGNodes[i].second->value());
+        }
     }
     return copied;
 
@@ -862,7 +998,9 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<floa
     string node_name_h;
     string node_name_v;
     string pin_name;
-    similarity_sequence.resize(2*t_NodeVec.size());
+    similarity_sequence.resize(2*t_NodeVec.size(), -1);
+    m_HCG->SetEMIBInf(&m_EMIBInfs);
+    m_VCG->SetEMIBInf(&m_EMIBInfs);
     for(int i=0; i<m_TCGNodes.size(); ++i){
         delete m_TCGNodes[i].first;
         delete m_TCGNodes[i].second;
@@ -892,14 +1030,12 @@ void TCG::TCGConstruct(vector<pair<float, float>>& t_NodeVec, vector<vector<floa
         EMIBInf inf(node_1, node_2, overlap, distance, occupied);
         m_EMIBInfs.push_back(inf);
     }
-    for(int i=0; i<m_EMIBInfs.size(); ++i){
+    /*for(int i=0; i<m_EMIBInfs.size(); ++i){
         cout << "EMIB " << i << ": " << m_EMIBInfs[i].node_1 <<"," << m_EMIBInfs[i].node_2<< endl;
     }
-    cout << "TCG total EMIB num: "  << m_EMIBInfs.size() << endl;
+    cout << "TCG total EMIB num: "  << m_EMIBInfs.size() << endl;*/
     m_HCG->set_TCGNodes(&m_HCGNodes);
     m_VCG->set_TCGNodes(&m_VCGNodes);
-    m_HCG->SetEMIBInf(&m_EMIBInfs);
-    m_VCG->SetEMIBInf(&m_EMIBInfs);
     for(int i=0; i<m_HCGNodes.size(); ++i){
         m_HCGNodes[i]->HardInitialize();
     }
@@ -918,19 +1054,57 @@ bool TCG::Legalization(){
     bool v_distance_success=true;
     string h_success;
     string v_success;
+    /*for(int i=0; i<1000; ++i){
+        move = rand()%4;
+        die1 = rand()%m_TCGNodes.size();
+        die2 = rand()%m_TCGNodes.size();
+        while(die2 == die1){
+            die2 = rand()%m_TCGNodes.size();
+        }
+        switch(move){
+            case 0:
+                movement_rotation(die1);
+                break;
+            case 1:
+                movement_swap(die1, die2);
+                break;
+            case 2:
+                movement_reverse(die1);
+                break;
+            case 3:
+                movement_move(die1);
+                break;
+        }
+        cout << "hi" << endl;
+        h_overlap_success = m_HCG->Overlap_Legalization();
+        v_overlap_success = m_VCG->Overlap_Legalization();
+        h_success = (h_overlap_success)?("success"):("false");
+        v_success = (v_overlap_success)?("success"):("false");
+        cout <<" HCG Overlap Legalization: " << h_success << endl;
+        cout <<" VCG Overlap Legalization: " << v_success << endl;
+        if(h_overlap_success && v_overlap_success){
+            h_distance_success = m_HCG->Distance_Legalization();
+            v_distance_success = m_VCG->Distance_Legalization();
+            h_success = (h_distance_success)?("success"):("false");
+            v_success = (v_distance_success)?("success"):("false");
+            cout << " HCG Distance Legalization: " << h_success << endl;
+            cout << " VCG Distance Legalization: " << v_success << endl;
+        }
+    }*/
+
     h_overlap_success = m_HCG->Overlap_Legalization();
     v_overlap_success = m_VCG->Overlap_Legalization();
     h_success = (h_overlap_success)?("success"):("false");
     v_success = (v_overlap_success)?("success"):("false");
-    cout <<" HCG Overlap Legalization: " << h_success << endl;
-    cout <<" VCG Overlap Legalization: " << v_success << endl;
+    //cout <<" HCG Overlap Legalization: " << h_success << endl;
+    //cout <<" VCG Overlap Legalization: " << v_success << endl;
     if(h_overlap_success && v_overlap_success){
         h_distance_success = m_HCG->Distance_Legalization();
         v_distance_success = m_VCG->Distance_Legalization();
         h_success = (h_distance_success)?("success"):("false");
         v_success = (v_distance_success)?("success"):("false");
-        cout << " HCG Distance Legalization: " << h_success << endl;
-        cout << " VCG Distance Legalization: " << v_success << endl;
+        //cout << " HCG Distance Legalization: " << h_success << endl;
+        //cout << " VCG Distance Legalization: " << v_success << endl;
         if(h_distance_success && v_distance_success){
             construct_similar_map();
             return true;
@@ -949,7 +1123,7 @@ vector<float> TCG::get_dies_coor(int t_die_index){
 }
 void TCG::movement_rotation(int t_die){
     m_TCGNodes[t_die].first->set_r();
-    for(int i=0; i<m_HCG->m_Nets.size(); ++i){
+    /*for(int i=0; i<m_HCG->m_Nets.size(); ++i){
         for(int j=0; j<m_HCG->m_Nets[i].size(); ++j){
             m_HCG->m_Nets[i][j]->finished = false;
         }
@@ -958,7 +1132,7 @@ void TCG::movement_rotation(int t_die){
         for(int j=0; j<m_VCG->m_Nets[i].size(); ++j){
             m_VCG->m_Nets[i][j]->finished = false;
         }
-    }
+    }*/
     for(int i=0;i<m_HCG->m_TCGNodes->size(); ++i){
         m_HCG->m_TCGNodes->at(i)->EMIBPs.clear();
     }
@@ -993,31 +1167,34 @@ void TCG::movement_swap(int t_die1, int t_die2){
     string temp_codename1_v = die1_v->CodeName();
     int temp_initial_index1_h = die1_h->Initialindex();
     int temp_initial_index1_v = die1_v->Initialindex();
+    int temp_input_index1_h = die1_h->InputIndex();
+    int temp_input_index1_v = die1_v->InputIndex();
     int temp_r1_h = die1_h->r();
     int temp_r1_v = die1_v->r();
-    m_die_map[m_TCGNodes[t_die1].first->Initialindex()] = die2_h;
-    m_die_map[m_TCGNodes[t_die2].first->Initialindex()] = die1_h;
     die1_h->SetWeight(die2_h->weight());
     die1_h->SetInitialWeight(die2_h->initial_weight());
     die1_h->SetCodeName(die2_h->CodeName());
     die1_h->set_r(die2_h->r());
     die1_h->setInitialindex(die2_h->Initialindex());
+    die1_h->SetInputIndex(die2_h->InputIndex());
     die1_v->SetWeight(die2_v->weight());
     die1_v->SetInitialWeight(die2_v->initial_weight());
     die1_v->SetCodeName(die2_v->CodeName());
     die1_v->set_r(die2_v->r());
     die1_v->setInitialindex(die2_v->Initialindex());
-
+    die1_v->SetInputIndex(die2_v->InputIndex());
     die2_h->SetWeight(temp_weight1_h);
     die2_h->SetInitialWeight(temp_initial_weight1_h);
     die2_h->SetCodeName(temp_codename1_h);
     die2_h->set_r(temp_r1_h);
     die2_h->setInitialindex(temp_initial_index1_h);
+    die2_h->SetInputIndex(temp_input_index1_h);
     die2_v->SetWeight(temp_weight1_v);
     die2_v->SetInitialWeight(temp_initial_weight1_v);
     die2_v->SetCodeName(temp_codename1_v);
     die2_v->set_r(temp_r1_v);
     die2_v->setInitialindex(temp_initial_index1_v);
+    die2_v->SetInputIndex(temp_input_index1_v);
     m_HCG->EMIBNetDerive(&m_HCGNodes);
     m_VCG->EMIBNetDerive(&m_VCGNodes);
 }
@@ -1323,5 +1500,150 @@ void TCG::Initialize(){
         m_TCGNodes[i].second->HardInitialize();
     }
     similarity_sequence.clear();
-    similarity_sequence.resize(2*m_TCGNodes.size());
+    similarity_sequence.resize(2*m_TCGNodes.size(), -1);
 }
+
+void  TCG::GetCoorInf(vector<pair<pair<float, float>, int>>& t_coor){
+    float x;
+    float y;
+    int   r;
+    for(int i=0; i<m_TCGNodes.size(); ++i){
+        t_coor[m_TCGNodes[i].first->InputIndex()].first.first = m_TCGNodes[i].first->value();
+        t_coor[m_TCGNodes[i].second->InputIndex()].first.second = m_TCGNodes[i].second->value();
+        t_coor[m_TCGNodes[i].first->InputIndex()].second = m_TCGNodes[i].first->r();
+    }
+}
+void  TCG::BackUp(){
+    for(int i=0; i<m_TCGNodes.size(); ++i){
+        m_TCGNodes[i].first->SetBackupValue(m_TCGNodes[i].first->value(), m_TCGNodes[i].first->m_BaseNode);
+        m_TCGNodes[i].second->SetBackupValue(m_TCGNodes[i].second->value(), m_TCGNodes[i].second->m_BaseNode);
+    }
+}
+
+void TCG::erase_dummy_source(){
+    for(int i=0; i<m_VCG->m_dummy_sources.size(); ++i){
+        for(auto it=m_VCG->m_dummy_sources[i]->DirectUpperNodes()->begin(); it!=m_VCG->m_dummy_sources[i]->DirectUpperNodes()->end(); ++it){
+            (*it)->DirectBottomNodes()->insert(m_VCG->source());
+            (*it)->DirectBottomNodes()->erase(m_VCG->m_dummy_sources[i]);
+            (*it)->m_BaseNode = m_VCG->source();
+            m_VCG->source()->DirectUpperNodes()->insert((*it));
+            m_VCG->source()->DirectUpperNodes()->erase(m_VCG->m_dummy_sources[i]);
+        }
+        delete m_VCG->m_dummy_sources[i];
+    }
+    m_VCG->m_dummy_sources.clear();
+
+}
+
+void TCG::insert_dummy_source(vector<pair<float, float>> t_sources, float t_base, vector<vector<float>>& t_new_horizon){
+    vector<vector<TCGNode*>> die_sets;
+    vector<float>            min_below_values;
+    vector<pair<float, float>> sources;
+    float min_floor_x;
+    float min_floor_y;
+    die_sets.resize(t_sources.size());
+    min_below_values.resize(t_sources.size());
+    for(int i=0; i<min_below_values.size();++i){
+        min_below_values[i] = 0;
+    }
+    for(int i=0; i<t_sources.size();++i){
+        if(i == 0){
+            min_floor_y = t_sources[0].second;
+        }
+        else if(t_sources[i].second < min_floor_y){
+            min_floor_y = t_sources[i].second;
+        }
+    }
+    float current_base = t_base;
+    for(int i=0; i<t_sources.size(); ++i){
+        for(auto it=m_VCG->source()->DirectUpperNodes()->begin(); it!=m_VCG->source()->DirectUpperNodes()->end(); ++it){
+            cout << (*it)->DualNode()->value() <<":"<< (*it)->DualNode()->value()+(*it)->DualNode()->weight() <<":"<< current_base <<":"<< t_sources[i].first <<":" << t_base <<":"<<t_sources[i].second << endl;
+            if(bool_overlap((*it)->DualNode()->value(), (*it)->DualNode()->value()+(*it)->DualNode()->weight(), current_base, t_sources[i].first - current_base)){
+                die_sets[i].push_back((*it));
+                if((*it)->value() < t_sources[i].second - min_floor_y && (t_sources[i].second - min_floor_y - (*it)->value() < min_below_values[i])){
+                    min_below_values[i] = t_sources[i].second - min_floor_y - (*it)->value();
+                }
+            }
+        }
+        current_base = t_sources[i].first;
+    }
+    float max_up = 0;
+    for(int i=0; i<min_below_values.size();++i){
+        if(min_below_values[i] > max_up){
+            max_up = min_below_values[i];
+        }
+    }
+    for(int i=0; i<m_VCG->m_EMIBPvec.size(); ++i){
+        delete m_VCG->m_EMIBPvec[i];
+    }
+    m_VCG->m_EMIBPvec.clear();
+    for(int i=0; i<die_sets.size(); ++i){
+        TCGNode* dummy_node = new TCGNode("dummy node", t_sources[i].second - min_floor_y);
+        for(int j=0; j<die_sets[i].size(); ++j){
+            dummy_node->DirectUpperNodes()->insert(die_sets[i][j]);
+            die_sets[i][j]->DirectBottomNodes()->insert(dummy_node);
+            die_sets[i][j]->m_BaseNode = dummy_node;
+            die_sets[i][j]->DirectBottomNodes()->erase(m_VCG->source());
+            m_VCG->source()->DirectUpperNodes()->erase(die_sets[i][j]);
+        }
+        m_VCG->m_dummy_sources.push_back(dummy_node);
+        m_VCG->source()->DirectUpperNodes()->insert(dummy_node);
+    }
+    for(int i=0; i<m_VCG->m_dummy_sources.size(); ++i){
+        m_VCG->m_dummy_sources[i]->SoftInitialize();
+    }
+    for(int i=0; i<m_TCGNodes.size(); ++i){
+        cout << "node " << m_TCGNodes[i].second->CodeName() << endl;
+        for(auto it=m_TCGNodes[i].second->DirectBottomNodes()->begin(); it!= m_TCGNodes[i].second->DirectBottomNodes()->end(); ++it){
+            cout << (*it)->CodeName() << endl;
+        }
+    }
+    m_VCG->Overlap_Legalization();
+    bool distance_success = m_VCG->Distance_Legalization();
+    for(int i=0; i<m_VCGNodes.size(); ++i){
+        m_VCGNodes[i]->ResetCounter();
+    }
+    for(int i=0; i<m_VCG->m_dummy_sources.size(); ++i){
+        m_VCG->m_dummy_sources[i]->ResetCounter();
+    }
+    if(!distance_success){
+        for(int i=0; i<m_VCGNodes.size(); ++i){
+            m_VCGNodes[i]->Setvalue(m_VCGNodes[i]->BackupValue() + max_up);
+            if(m_VCGNodes[i]->m_BaseNode->CodeName() != "dummy node"){
+                m_VCGNodes[i]->m_BaseNode = m_VCGNodes[i]->m_backup_basenode;
+            }
+        }
+    }
+    cout << "ll5" << endl;
+    TCGNode* v_source = m_VCG->source();
+    queue<TCGNode*>            traverseQueue;
+    TCGNode*                   current_node;
+    traverseQueue.push(v_source);
+    for(int i=0; i<m_VCG->m_EMIBPvec.size(); ++i){
+        delete m_VCG->m_EMIBPvec[i];
+    }
+    m_VCG->m_EMIBPvec.clear();
+    cout << "ll6" << endl;
+    while(traverseQueue.size() != 0){
+        current_node = traverseQueue.front();
+        traverseQueue.pop();
+        current_node->SetVisited();
+        for(auto it = current_node->DirectUpperNodes()->begin(); it!=current_node->DirectUpperNodes()->end(); ++it){
+            if((*it)->finished()){
+                cout << "ee" << endl;
+                if((*it)->CodeName() != "dummy node"){
+                    vector<float> temp;
+                    temp.push_back((*it)->DualNode()->value());
+                    temp.push_back((*it)->DualNode()->value() + (*it)->DualNode()->weight());
+                    cout << "ee2" << endl;
+                    temp.push_back((*it)->value()+(*it)->weight()-(*it)->m_BaseNode->value()-(*it)->m_BaseNode->weight());
+                    t_new_horizon.push_back(temp);
+                }
+                traverseQueue.push((*it));
+            }
+        }
+    }
+    erase_dummy_source();
+
+}
+

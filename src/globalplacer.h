@@ -8,8 +8,6 @@
 #include <utility>
 #include <algorithm>
 #include <vector>
-#include <stdio.h>
-#include <stdlib.h>
 #include <time.h>
 #include <iostream>
 #include <cmath>
@@ -45,7 +43,7 @@ public:
         }
         else if(mode == "test"){
             m_random_die_generate(15, make_pair(6,12), make_pair(6,12));
-            m_random_EMIB_generate(18, make_pair(1,2), make_pair(1,1), make_pair(1,1));
+            m_random_EMIB_generate(8, make_pair(1,2), make_pair(1,1), make_pair(1,1));
         }
         //cout << "Die Num: " << m_DieVec.size() << endl;
         //cout << "EMIB Num: " << m_EMIBNets.size() << endl;
@@ -86,20 +84,23 @@ public:
     void write_output(char* arg1, char* arg2, char* arg3);
     void set_random_seed(int t_seed){m_seed = t_seed;};
     void set_initial_seed(int t_seed){m_initial_topology_seed = t_seed;};
-    void do_partial_placement(){
-        for(int i=0; i<m_ECGs.size(); ++i){
-            vector<vector<float>> die_inf = PartialPlacers[i]->get_dies_inf(0,0);
-            //cout << "updated die num: " << die_inf.size() << endl;
-            for(int j=0; j<m_ECGs[i]->dieset.size(); ++j){
-                m_ECGs[i]->dieset[j]->set_x(die_inf[j][0]);
-                m_ECGs[i]->dieset[j]->set_y(die_inf[j][1]);
-                m_ECGs[i]->dieset[j]->set_r(die_inf[j][2]);
-                m_ECGs[i]->dieset[j]->set_initial_index(j);;
+    void do_floorplan(){
+        vector<vector<vector<TCG*>>> temp;
+        for(int i=0; i<PartialPlacers.size(); ++i){
+            PartialPlacers[i]->phase1_start(); ////////vfvfvf
+            for(int j=0; j<PartialPlacers[i]->m_TCGs.size(); ++j){
+                cout << i << " ecg " << j << " group solution num: " << PartialPlacers[i]->m_TCGs[j].size() << endl;
             }
+            PartialPlacers[i]->phase2_start();  ////////vfvfvf
+            for(int j=0; j<PartialPlacers[i]->m_TCGs.size(); ++j){
+                cout << i << " ecg " << j << " group solution num: " << PartialPlacers[i]->m_TCGs[j].size() << endl;
+            }
+            temp.push_back(PartialPlacers[i]->m_TCGs);
         }
+        OverallPlacer->InputECG(m_TransformDieToBstar(m_DieVec), m_TransformDieToBstar(m_NormalDieVec), temp, m_TransformCommonNetToBstar(), m_MappingCommonPinToDie());
+        OverallPlacer->start();
     }
     void do_overall_placement(){
-        OverallPlacer->InputData(m_TransformDieToBstar(), m_TransformCommonNetToBstar(), m_MappingCommonPinToDie(), "B*-tree");
         OverallPlacer->start();
         vector<vector<float>> die_inf = OverallPlacer->get_dies_inf(0,0);
         for(int i=0; i<m_DieVec.size(); ++i){
@@ -130,7 +131,7 @@ private:
     void m_random_assignment(MST_node* t_root , vector<MST_node*>& t_bottom, vector<vector<int>>& t_edges);
     void m_graph_connection(MST_node* t_root1, MST_node* t_root2, vector<vector<int>>& t_h_edges, vector<vector<int>>& t_v_edges);
     int  m_search_die(string t_name);
-    vector<pair<float, float>> m_TransformDieToBstar();
+    vector<pair<float, float>> m_TransformDieToBstar(vector<die*>& t_DieVec);
     vector<pair<pair<float, float>, pair<float, float>>> m_TransformCommonNetToBstar();
     vector<pair<float, float>>  m_TransformECGToTCG();
     vector<pair<int, int>> m_MappingCommonPinToDie();

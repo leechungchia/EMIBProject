@@ -69,10 +69,14 @@ float SA::get_hpwl_cost(){
 
 float SA::get_current_cost(int t_mode, vector<float> t_input)
 {
-    float current_cost;
+    float current_cost=1000;
+    float profile_cost;
+    float area_cost;
+    float hpwl_cost;
     switch(t_mode){
         case 1:
             current_cost = t_input[0]*m_reduction_para + t_input[1]*m_illegal_para;
+            break;
         case 2:
             if(t_input[2] >= 0){
                 current_cost = t_input[0]*m_x_para + t_input[1]*m_y_para + t_input[2]*m_delta_para;
@@ -85,10 +89,13 @@ float SA::get_current_cost(int t_mode, vector<float> t_input)
             current_cost = t_input[0]*m_x_para + t_input[1]*m_y_para;
             break;
         case 3:
-            float profile_cost = get_profile_cost();
-            float area_cost    = get_area_cost();
-            float hpwl_cost    = get_hpwl_cost();
+            profile_cost = get_profile_cost();
+            area_cost    = get_area_cost();
+            hpwl_cost    = get_hpwl_cost();
             current_cost = profile_cost + area_cost + hpwl_cost;
+            break;
+        default:
+            current_cost = 1000;
             break;
     }
 
@@ -104,14 +111,15 @@ float SA::get_current_best_cost()
 
 bool SA::m_chosen_probability(float diff, float current_temperature)
 {
-    if(diff <= 0)
+    m_calltime++;
+    if(diff < 0)
     {
         return true;
     }
     else
     {
         float check = (float)(rand()%10)/(float)10;
-        return check <= exp(-diff/current_temperature);
+        return check < (float)exp(-diff/current_temperature);
     }
 }
 
@@ -124,6 +132,7 @@ bool SA::m_chosen_probability(float diff, float current_temperature)
 
 void SA::m_bstar_move()
 {
+    m_calltime ++;
     m_BstarTree->do_backups();
     float move_case = (float)(rand()%10)/(float)10.0;
     if(move_case < m_di_p)
@@ -147,20 +156,33 @@ void SA::m_bstar_move()
         }
         m_BstarTree->swap_move(m_BstarTree->nodes()->at(index_1), m_BstarTree->nodes()->at(index_2));
     }
+    else if(move_case < m_swap_p + m_di_p + m_transfer_p){
+        int index = rand()%m_BstarTree->m_ecgs.size();
+        bool change = ((float)(rand()%10)/(float)10.0 < m_change_group_p);
+        float change_group = m_BstarTree->m_ecgs[index]->current_num.first;
+        bool dir = rand()%2;
+        int step = 1+rand()%3;
+        if(change){
+            change_group = rand()%m_BstarTree->m_ecgs[index]->topology_set.size();
+        }
+        cout << m_BstarTree->m_ecgs[index]->topology_set.size() << endl;
+        cout << m_BstarTree->m_ecgs[index]->current_num.first << endl;
+        cout << index << "," << change_group << "," << dir << "," << step << endl;
+        m_BstarTree->transfer_topology(m_BstarTree->m_ecgs[index], change_group, dir, step);
+    }
     else
     {
         int index = rand()%m_size;
         m_BstarTree->rotate(m_BstarTree->nodes()->at(index));
     }
+    cout << "mm" << endl;
     m_BstarTree->m_get_coordinates();
 }
 
 ////progress of simulated annealing////
 
 void SA::start(){
-    if(m_structure == "B*-tree"){
-        m_bstar_start();
-    }
+    m_bstar_start();
 }
 void SA::m_bstar_start()
 {
@@ -182,7 +204,9 @@ void SA::m_bstar_start()
         while((uphill <= m_time_upperbound)&&(training_time <= 2*m_time_upperbound))
         {
             training_time += 1;
+            cout << "uu" << endl;
             m_bstar_move();
+            cout << "cc" << endl;
             vector<float> temp;
             current_cost = get_current_cost(3, temp);
             diff = current_cost - last_cost;
@@ -242,12 +266,12 @@ void SA::phase1_start(){
     float best_cost    = 10000;
     float last_cost    = 10000;
     float diff = 0;
-    long t_start = clock();
+    /*long t_start = clock();*/
     long time_process = 0;
     long ticks = 1000000.0;
     int move;
-    int die1;
-    int die2;
+    int die1=0;
+    int die2=0;
     bool legalize_success = false;
     bool back = false;
     bool have_new_group = false;
@@ -256,15 +280,17 @@ void SA::phase1_start(){
     int total_solution = 0;
     bool has_solution = false;
     bool find_solution = false;
+    bool time_out = false;
     TCG* new_TCG;
-    TCG* current_TCG = base_TCG->copyself();
-    TCG* last_TCG    = base_TCG->copyself();
+    TCG* current_TCG = base_TCG->copyself(false);
+    TCG* last_TCG    = base_TCG->copyself(false);
     vector<pair<float, float>> DieVec; 
     vector<vector<float>> EMIBNetVec; 
     vector<pair<int, int>> MappingEMIBToDie;
     vector<vector<int>> h_edges;
     vector<vector<int>> v_edges;
-    while((repeated_solutions/(m_buffer+total_solution) < 0.95) || (!has_solution))
+    cout << "start phase 1" << endl;
+    while((((float)repeated_solutions/(float)(m_buffer+total_solution) < 0.95) || (!has_solution)) && (!time_out) && (m_TCGs.size() < m_base_num))
     {
         if(back){
             has_solution = true;
@@ -282,7 +308,8 @@ void SA::phase1_start(){
                         have_new_group = false;
                         break;
                     }
-                    new_TCG = current_TCG->copyself();
+                    new_TCG = current_TCG->copyself(true);
+                    new_TCG->BackUp();
                     m_TCGs[i].push_back(new_TCG);
                     have_new_group = false;
                     m_topology_num++;
@@ -290,6 +317,8 @@ void SA::phase1_start(){
                 }
             }
             if(have_new_group){
+                new_TCG = current_TCG->copyself(true);
+                new_TCG->BackUp();
                 vector<TCG*> new_group = {new_TCG};
                 m_TCGs.push_back(new_group);
                 m_topology_num++;
@@ -298,25 +327,28 @@ void SA::phase1_start(){
             DieVec = placer->m_ECGs[ECG_index]->TransformDieToTCG();
             EMIBNetVec = placer->m_ECGs[ECG_index]->TransformEMIBToTCG();
             MappingEMIBToDie = placer->m_ECGs[ECG_index]->MappingEMIBToDie();
+            h_edges.clear();
+            v_edges.clear();
             h_edges = placer->m_ECGs[ECG_index]->h_edges;
             v_edges = placer->m_ECGs[ECG_index]->v_edges;
+            delete base_TCG;
+            base_TCG = new TCG();
             base_TCG->TCGConstruct(DieVec, EMIBNetVec, MappingEMIBToDie);
             base_TCG->GetTCGEdge(h_edges, v_edges);
             delete current_TCG;
             delete last_TCG;
-            current_TCG = base_TCG->copyself();
-            last_TCG    = base_TCG->copyself();
-            cout << "Derive another initial topology" << endl;
+            current_TCG = base_TCG->copyself(false);
+            last_TCG    = base_TCG->copyself(false);
             current_temperature = m_initial_temperature;
         }
         back = false;
+        reject = 0;
+        training_time = 1;
         while(((float)reject/(float)training_time < 0.95)&&(current_temperature >= m_epsilon)){
             if(back){
                 break;
             }
-            training_time = 1;
             uphill = 0;
-            reject = 0;
             while((uphill <= m_time_upperbound)&&(training_time <= 2*m_time_upperbound))
             {
                 training_time += 1;
@@ -332,10 +364,15 @@ void SA::phase1_start(){
                         break;
                     case 1:
                         current_TCG->movement_swap(die1, die2);
+                        break;
                     case 2:
                         current_TCG->movement_reverse(die1);
+                        break;
                     case 3:
                         current_TCG->movement_move(die1);
+                        break;
+                    default:
+                        break;
                 }
                 legalize_success =current_TCG->Legalization();
                 vector<float> tcg_in = {current_TCG->ReductionRatio(), current_TCG->LegalNodeRatio()};
@@ -354,24 +391,27 @@ void SA::phase1_start(){
                     last_cost = current_cost;
                     delete last_TCG;
                     last_TCG = current_TCG;
-                    current_TCG = current_TCG->copyself();
+                    current_TCG = current_TCG->copyself(false);
                 }
                 else
                 {
                     delete current_TCG;
-                    current_TCG = last_TCG->copyself();
+                    current_TCG = last_TCG->copyself(false);
                     reject += 1;
                 }
             }
             current_temperature *= m_decay_rate;
-            long t_end = clock();
+            /*long t_end = clock();
             time_process = t_end - t_start;
+            if(time_process > ticks*60*1){
+                time_out = true;
+            }*/
         }
 
     }
 }
 void SA::phase2_start(){
-    float current_temperature = m_initial_temperature;
+    float current_temperature = m_initial_temperature_2;
     int reject = 0;
     int training_time = 1;
     int uphill = 0;
@@ -379,7 +419,7 @@ void SA::phase2_start(){
     float best_cost    = 10000;
     float last_cost    = 10000;
     float diff = 0;
-    long t_start = clock();
+    /*long t_start = clock();*/
     long time_process = 0;
     long ticks = 1000000.0;
     int move;
@@ -397,17 +437,21 @@ void SA::phase2_start(){
     TCG* last_TCG;
     TCG* current_TCG;
     TCG* base;
+    TCG* inserted;
+    cout << "start phase 2" << endl;
     for(int i=0; i<m_TCGs.size(); ++i){
         base        = m_TCGs[i][0];
         iteration = 0;
-        current_TCG = m_TCGs[i][0]->copyself();
-        last_TCG    = m_TCGs[i][0]->copyself();
+        current_TCG = m_TCGs[i][0]->copyself(false);
+        last_TCG    = m_TCGs[i][0]->copyself(false);
         current_temperature = m_initial_temperature_2;
-        while((repeated_solutions/(m_buffer_2+total_solution) < 0.95) && ((float)reject/(float)training_time < 0.95)&&(current_temperature >= m_epsilon))
+        repeated_solutions = 0;
+        total_solution     = 0;
+        reject = 0;
+        training_time = 1;
+        while((repeated_solutions/(m_buffer_2+total_solution) < 0.95) && ((float)reject/(float)training_time < 0.95)&&(current_temperature > m_epsilon))
         {
-            training_time = 1;
             uphill = 0;
-            reject = 0;
             while((uphill <= m_time_upperbound)&&(training_time <= 2*m_time_upperbound))
             {
                 training_time += 1;
@@ -423,21 +467,28 @@ void SA::phase2_start(){
                         break;
                     case 1:
                         current_TCG->movement_swap(die1, die2);
+                        break;
                     case 2:
                         current_TCG->movement_reverse(die1);
+                        break;
                     case 3:
                         current_TCG->movement_move(die1);
+                        break;
+                    default:
+                        break;
                 }
                 legalize_success =current_TCG->Legalization();
                 if(legalize_success){
                     vector<float> tcg_in;
                     tcg_in.push_back((float)current_TCG->m_HCG->target()->value()/base->m_HCG->target()->value());
                     tcg_in.push_back((float)current_TCG->m_VCG->target()->value()/base->m_VCG->target()->value());
-                    tcg_in.push_back((float)(1-placer->m_check_similarity(current_TCG, base))/(float)(1-m_similarity_bound_2));
+                    tcg_in.push_back((float)(placer->m_check_similarity(current_TCG, base) - m_similarity_bound_2)/(float)(1.0-m_similarity_bound_2));
                     current_cost = get_current_cost(2, tcg_in);
                     diff = current_cost - last_cost;
                     if(!placer->m_check_equal(current_TCG, m_TCGs[i])){
-                        m_TCGs[i].push_back(current_TCG->copyself());
+                        inserted = current_TCG->copyself(true);
+                        inserted->BackUp();
+                        m_TCGs[i].push_back(inserted);
                     }
                     else{
                         repeated_solutions++;
@@ -453,20 +504,48 @@ void SA::phase2_start(){
                     last_cost = current_cost;
                     delete last_TCG;
                     last_TCG = current_TCG;
-                    current_TCG = current_TCG->copyself();
+                    current_TCG = current_TCG->copyself(false);
                 }
                 else
                 {
                     delete current_TCG;
-                    current_TCG = last_TCG->copyself();
+                    current_TCG = last_TCG->copyself(false);
                     reject += 1;
                 }
             }
             current_temperature *= m_decay_rate;
-            long t_end = clock();
-            time_process = t_end - t_start;
+            /*long t_end = clock();
+            time_process = t_end - t_start;*/
         }
     }
+    set<TCG*> temp;
+    for(int i=0; i<m_TCGs.size(); ++i){
+        temp.insert(m_TCGs[i].begin(), m_TCGs[i].end());
+    }
+    cout << "equal ratio: " << equal_ratio(temp) << endl;
 }
+
+
+float SA::equal_ratio(set<TCG*> t_seq){
+    int counter = 0;
+    int size    = t_seq.size();
+    bool exist = false;
+    while(t_seq.size() > 0){
+        exist = false;
+        TCG* current = (*t_seq.begin());
+        for(auto it=t_seq.begin(); it!=t_seq.end(); ++it){
+            if((*it) != current && placer->m_check_similarity((*it), current) == 1.0){
+                t_seq.erase(it++);
+                exist = true;
+            }
+        }
+        if(exist){
+            counter++;
+        }
+        t_seq.erase(t_seq.begin());
+    }
+    return float(counter)/(float)size;
+}
+
 
 

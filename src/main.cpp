@@ -5,16 +5,15 @@
 
 using namespace std;
 
-
 int main(int argc,char* argv[])
 {
     srand(231);
     time_t start = time(0);
     //GlobalPlacer placer(argv[1], argv[2], "random", 0, "test");
      GlobalPlacer* placer;
-    placer = new GlobalPlacer(argv[1], argv[2], "random", 0, "test", rand(), rand()); 
-    placer->do_partial_placement();
-    placer->write_output(argv[3], argv[4], argv[5]);
+    placer = new GlobalPlacer(argv[1], argv[2], "random", 15, "test", rand(), rand());
+    placer->do_floorplan(); 
+    //placer->write_output(argv[3], argv[4], argv[5]);
     //placer.do_partial_placement();
     /*
     placer.OverallPlacer->set_bstar_parameter(0.3,0.4,0.3);

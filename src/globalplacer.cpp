@@ -628,10 +628,10 @@ void GlobalPlacer::write_output(char* arg1, char* arg2, char* arg3)
     //sa->write_output(arg1, arg3);
 }
 
-vector<pair<float, float>> GlobalPlacer::m_TransformDieToBstar(){
+vector<pair<float, float>> GlobalPlacer::m_TransformDieToBstar(vector<die*>& t_DieVec){
     vector<pair<float, float>> inf;
-    for(int i=0; i<m_DieVec.size(); ++i){
-        inf.push_back(make_pair(m_DieVec[i]->w(), m_DieVec[i]->h()));
+    for(int i=0; i<t_DieVec.size(); ++i){
+        inf.push_back(make_pair(t_DieVec[i]->w(), t_DieVec[i]->h()));
     }
     return inf;
 }

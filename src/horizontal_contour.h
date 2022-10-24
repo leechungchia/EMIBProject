@@ -43,6 +43,7 @@ private:
     segment* m_rlink;
 };
 
+
 class horizontal_contour
 {
 public:
@@ -61,7 +62,8 @@ public:
         m_ground->set_rear_link(intermediate);
         m_ceiling->set_fore_link(intermediate);
     }
-    float insert_segment(float s_xcoor, float l_xcoor, float t_height);
+    void insert_segment(float s_xcoor, float l_xcoor, float t_height, pair<float, float>& t_ypair);
+    void  find_segment(float s_xcoor, float l_xcoor, vector<pair<float, float>>& t_set);
     void  present();
     void  reset();
     segment* ground(){return m_ground;}

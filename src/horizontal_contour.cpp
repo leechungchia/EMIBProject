@@ -68,7 +68,43 @@ void segment::set_rear_link(segment* t_segment)
 
 ////            horizontal contour update           ////
 
-float horizontal_contour::insert_segment(float s_xcoor, float l_xcoor, float t_height)
+
+void horizontal_contour::find_segment(float s_xcoor, float l_xcoor, vector<pair<float, float>>& t_set){
+    segment* tar = m_ground->rear_link();
+    segment* begin = m_ground;
+    segment* end = m_ceiling;
+    float small, large, l_value;
+    while(tar != m_ceiling)
+    {   
+        small = tar->s_xcoor();
+        large = tar->l_xcoor();
+        if((small <= s_xcoor)&&(large > s_xcoor))
+        {
+            begin = tar;
+            t_set.push_back(make_pair(large, tar->value()));
+            if(large >= l_xcoor)
+            {
+                return;
+            }
+            else
+            {
+                tar = tar->rear_link();
+            }
+        }
+        else if((small < l_xcoor)&&(large >= l_xcoor))
+        {
+            t_set.push_back(make_pair(large, tar->value()));
+            return;
+        }
+        else
+        {
+            tar = tar->rear_link();  
+        }
+    }
+    t_set.push_back(make_pair(100000000, 0));
+}
+
+void horizontal_contour::insert_segment(float s_xcoor, float l_xcoor, float t_height, pair<float, float>& t_ypair)
 {
     segment* tar = m_ground->rear_link();
     segment* begin = m_ground;
@@ -159,7 +195,6 @@ float horizontal_contour::insert_segment(float s_xcoor, float l_xcoor, float t_h
         if((small == s_xcoor) && (large == l_xcoor))
         {
             begin->set_value(l_value + t_height);
-            return l_value;
         }
         else if((small != s_xcoor) && (large == l_xcoor))
         {
@@ -189,7 +224,8 @@ float horizontal_contour::insert_segment(float s_xcoor, float l_xcoor, float t_h
     {
         m_height = l_value+t_height;
     }
-    return l_value;
+    t_ypair.first = l_value;
+    t_ypair.second = l_value+t_height;
 }
 
 ////present the horizontal list////

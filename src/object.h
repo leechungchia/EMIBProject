@@ -129,5 +129,19 @@ private:
     float              m_h_diff;
 };
 
+class general_node{
+    public:
+        general_node(int t_index):index(t_index), visited(false), uppernode(0){};
+        vector<general_node*>        bottom_nodes;
+        general_node*                uppernode;
+        bool                         visited;
+        int                          index; 
+};
+
+
+
+
+
+
 
 #endif
